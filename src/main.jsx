@@ -1,0 +1,45 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import SplashGate from "./pages/SplashGate.jsx";
+import App from "./App.jsx";
+import Register from "./pages/Register.jsx";
+import Login from "./pages/Login.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import AssessmentFlow from "./pages/AssessmentFlow.jsx";
+import Home from "./pages/Home.jsx";
+
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/login" />;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <BrowserRouter>
+    <Routes>
+      <Route path="/gate" element={<SplashGate />} />
+
+      <Route path="/" element={<App />}>
+        <Route path="/home" element={<Home />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="assessment"
+          element={
+            <ProtectedRoute>
+              <AssessmentFlow />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+    </Routes>
+  </BrowserRouter>
+);
