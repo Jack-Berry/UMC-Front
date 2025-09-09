@@ -13,17 +13,38 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-left">
-        <Link to="/dashboard" className="logo">
-          UMC
+    <nav className="bg-neutral-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
+      <div>
+        <Link
+          to="/dashboard"
+          className="text-xl font-bold tracking-wide hover:text-brand-400 transition"
+        >
+          Useless Men's Co-operative
         </Link>
       </div>
-      <div className="navbar-right">
+      <div>
         {user ? (
-          <button onClick={handleLogout}>Logout</button>
+          <button
+            onClick={handleLogout}
+            className="bg-brand-600 hover:bg-brand-500 transition text-white px-4 py-2 rounded-md text-sm font-medium"
+          >
+            Logout
+          </button>
         ) : (
-          <Link to="/login">Login</Link>
+          <div className="flex gap-4">
+            <Link
+              to="/login"
+              className="text-sm text-white hover:text-brand-400 transition"
+            >
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="text-sm text-white hover:text-brand-400 transition"
+            >
+              Register
+            </Link>
+          </div>
         )}
       </div>
     </nav>

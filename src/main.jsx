@@ -1,4 +1,5 @@
 import React from "react";
+import "./index.css";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import SplashGate from "./pages/SplashGate.jsx";
@@ -19,7 +20,17 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <Routes>
       <Route path="/gate" element={<SplashGate />} />
 
-      <Route path="/" element={<App />}>
+      <Route
+        path="/"
+        element={
+          localStorage.getItem("authenticated") === "true" ? (
+            <App />
+          ) : (
+            <SplashGate />
+          )
+        }
+      >
+        <Route index element={<Navigate to="/home" />} />
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />

@@ -13,15 +13,9 @@ export default function Home() {
     }
   }, [navigate]);
   return (
-    <div className="splash-container">
+    <div className="flex items-center justify-center min-h-screen text-white">
       <h1>Welcome!</h1>
       <p>This is the private preview area.</p>
-      <nav style={{ marginTop: "20px" }}>
-        <Link to="/register" style={{ marginRight: "10px" }}>
-          Register
-        </Link>
-        <Link to="/login">Login</Link>
-      </nav>
     </div>
   );
 }

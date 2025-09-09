@@ -1,5 +1,4 @@
-// src/pages/AssessmentFlow.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { submitAssessment } from "../api/assessment";
 import { fetchUserById } from "../api/auth";
@@ -9,9 +8,13 @@ export default function AssessmentFlow() {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const userId = storedUser?.id;
+
   const [step, setStep] = useState(0);
   const [scores, setScores] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  console.log(storedUser);
+
   const LABELS = {
     1: "I am useless",
     2: "Below average",
@@ -19,6 +22,20 @@ export default function AssessmentFlow() {
     4: "I am useful",
     5: "Mastered it",
   };
+
+  useEffect(() => {
+    if (!storedUser) {
+      navigate("/home");
+      return;
+    }
+    if (storedUser.has_completed_assessment) {
+      console.log(
+        "Redirecting to Dashboard...",
+        storedUser.has_completed_assessment
+      );
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const currentCategory = assessmentData[step];
 
@@ -38,7 +55,6 @@ export default function AssessmentFlow() {
       setSubmitting(true);
       try {
         const scoresByCategory = {};
-
         for (const [category, answers] of Object.entries(scores)) {
           const avg =
             answers.reduce((acc, val) => acc + val, 0) / answers.length;
@@ -46,10 +62,8 @@ export default function AssessmentFlow() {
         }
 
         await submitAssessment({ userId, scoresByCategory });
-
         const updatedUser = await fetchUserById(userId);
         localStorage.setItem("user", JSON.stringify(updatedUser));
-
         navigate("/dashboard");
       } catch (err) {
         console.error("Assessment submission failed", err);
@@ -62,91 +76,56 @@ export default function AssessmentFlow() {
   const progress = Math.round(((step + 1) / assessmentData.length) * 100);
 
   return (
-    <div className="assessment-container">
-      <h2>Initial Assessment</h2>
-      <p style={{ maxWidth: "500px" }}>
+    <div className="max-w-3xl mx-auto px-6 py-10 text-white">
+      <h2 className="text-2xl font-bold mb-4">Initial Assessment</h2>
+      <p className="text-gray-300 mb-6 max-w-xl">
         Before you get started, let’s get a quick snapshot of where you're at.
         This will help us tailor your growth journey and unlock relevant tools,
         events, and matches.
       </p>
 
-      <div style={{ margin: "20px 0" }}>
-        <strong>{currentCategory.category}</strong>
-        <p>{currentCategory.description}</p>
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold mb-2">
+          {currentCategory.category}
+        </h3>
+        <p className="text-gray-400 mb-4">{currentCategory.description}</p>
 
         {currentCategory.questions.map((question, index) => (
-          <div key={index} style={{ marginBottom: "12px" }}>
-            <label>
-              {question}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  flexWrap: "wrap",
-                  marginTop: "10px",
-                }}
-              >
-                {[1, 2, 3, 4, 5].map((val) => (
-                  <div
-                    key={val}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      width: "80px",
-                    }}
-                  >
+          <div key={index} className="mb-6">
+            <p className="mb-2 font-medium">{question}</p>
+            <div className="flex flex-wrap gap-4">
+              {[1, 2, 3, 4, 5].map((val) => {
+                const isSelected =
+                  scores[currentCategory.category]?.[index] === val;
+                return (
+                  <div key={val} className="flex flex-col items-center w-20">
                     <button
                       onClick={() => handleChange(index, val)}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "6px",
-                        border: "1px solid #ccc",
-                        background:
-                          scores[currentCategory.category]?.[index] === val
-                            ? "#0070f3"
-                            : "#f0f0f0",
-                        color:
-                          scores[currentCategory.category]?.[index] === val
-                            ? "#fff"
-                            : "#000",
-                        cursor: "pointer",
-                        width: "100%",
-                      }}
+                      className={`w-full py-2 rounded border text-sm font-semibold transition
+                        ${
+                          isSelected
+                            ? "bg-brand-500 text-white border-brand-500"
+                            : "bg-neutral-800 text-white border-gray-600 hover:bg-brand-600 hover:border-brand-600"
+                        }
+                      `}
                     >
                       {val}
                     </button>
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        marginTop: "4px",
-                        textAlign: "center",
-                      }}
-                    >
+                    <span className="text-s text-center mt-1 text-gray-400">
                       {LABELS[val]}
                     </span>
                   </div>
-                ))}
-              </div>
-            </label>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
 
-      <div
-        style={{
-          margin: "20px 0",
-          width: "100%",
-          background: "#eee",
-          height: "8px",
-        }}
-      >
+      <div className="w-full h-2 bg-gray-700 rounded mb-6">
         <div
-          style={{
-            width: `${progress}%`,
-            height: "100%",
-            background: "#0070f3",
-          }}
+          className="h-full rounded bg-white transition-all"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
@@ -158,9 +137,13 @@ export default function AssessmentFlow() {
             currentCategory.questions.length ||
           scores[currentCategory.category].includes(undefined)
         }
-        style={{ marginTop: "10px" }}
+        className="px-6 py-2 rounded bg-brand-600 hover:bg-brand-500 transition text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        {step < assessmentData.length - 1 ? "Next" : "Finish"}
+        {step < assessmentData.length - 1
+          ? "Next"
+          : submitting
+          ? "Submitting..."
+          : "Finish"}
       </button>
     </div>
   );

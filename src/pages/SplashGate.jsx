@@ -1,5 +1,4 @@
-// src/pages/SplashGate.jsx
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const PASSWORD = import.meta.env.VITE_SPLASH_PASSWORD;
@@ -13,7 +12,7 @@ export default function SplashGate() {
     const saved = localStorage.getItem("authenticated");
     if (saved === "true") {
       setAuthenticated(true);
-      navigate("/login");
+      navigate("/home");
     }
   }, []);
 
@@ -29,18 +28,26 @@ export default function SplashGate() {
   };
 
   return (
-    <div className="splash-container">
-      <h1>Useless Men's Co-op</h1>
-      <p>This page is under construction.</p>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="password"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter password"
-        />
-        <button type="submit">Enter</button>
-      </form>
+    <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
+      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+        <h1 className="text-3xl font-bold mb-4">Useless Men's Co-op</h1>
+        <p className="mb-6 text-gray-300">This page is under construction.</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="password"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Enter password"
+            className="w-full px-4 py-2 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <button
+            type="submit"
+            className="w-full py-2 bg-brand-600 hover:bg-brand-700 rounded text-white font-semibold transition"
+          >
+            Enter
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
