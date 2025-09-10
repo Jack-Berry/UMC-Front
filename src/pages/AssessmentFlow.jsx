@@ -93,7 +93,7 @@ export default function AssessmentFlow() {
         {currentCategory.questions.map((question, index) => (
           <div key={index} className="mb-6">
             <p className="mb-2 font-medium">{question}</p>
-            <div className="flex flex-row sm:flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               {[1, 2, 3, 4, 5].map((val) => {
                 const isSelected =
                   scores[currentCategory.category]?.[index] === val;
