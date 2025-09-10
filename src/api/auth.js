@@ -1,3 +1,4 @@
+// src/api/auth.js
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050";
 
 export const registerUser = async (userData) => {
@@ -21,7 +22,6 @@ export const loginUser = async (credentials) => {
 };
 
 export const fetchUserById = async (userId) => {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050";
   const res = await fetch(`${API_URL}/api/auth/user/${userId}`);
   if (!res.ok) throw new Error("Failed to fetch user");
   return res.json();
