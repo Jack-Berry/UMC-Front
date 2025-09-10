@@ -38,7 +38,7 @@ function AuthenticatedApp() {
           }
         />
         <Route
-          path="assessment"
+          path="assessment/:type"
           element={
             <ProtectedRoute>
               <AssessmentFlow />

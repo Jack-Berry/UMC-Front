@@ -1,18 +1,7 @@
 // src/pages/Home.jsx
 import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
 export default function Home() {
-  const navigate = useNavigate();
-
-  // useEffect(() => {
-  //   const storedUser = localStorage.getItem("user");
-  //   if (storedUser) {
-  //     navigate("/dashboard");
-  //   }
-  // }, [navigate]);
-
   return (
     <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center px-6">
       <div className="max-w-2xl w-full bg-neutral-800 p-8 rounded-lg shadow-lg">
@@ -20,40 +9,42 @@ export default function Home() {
           Welcome to the Useless Men's Co-operative!
         </h1>
         <p className="mb-6 text-gray-300">
-          This is an early version of the app for testing purposes. Here's what
-          you can try right now:
+          This is an early version of the app that’s live for testing. Here’s
+          what you can try right now:
         </p>
 
         <ul className="list-disc list-inside space-y-2 text-gray-200 mb-6">
           <li>
-            There is a password protected gate preventing public access to the
-            website
+            Access is password protected — only invited testers can get in.
           </li>
           <li>
-            You can create an account or log in with an existing one. So far
-            this doesn't require a real email address or anything, but is
-            secure.
+            You can create an account or log in with an existing one (no real
+            email required, but accounts are secure).
           </li>
           <li>
-            Once logged in, you can view the basic mock up dashboard area.
+            Once logged in, you’ll land on your dashboard, which shows your
+            progress and reminders.
           </li>
           <li>
-            There's a first draft of the assessment form — feel free to fill it
-            in.
+            The{" "}
+            <span className="font-semibold text-brand-400">
+              Initial Assessment
+            </span>{" "}
+            is fully functional — complete it to unlock the rest of the app.
           </li>
           <li>
-            You can log out or reset your access using the buttons at the top.
-            This simulates a new user visiting the site.
+            You’ll see placeholders for{" "}
+            <span className="italic">in-depth assessments</span>. These aren’t
+            ready yet, but you can click them to preview how they’ll appear.
           </li>
           <li className="font-bold text-green-400">
-            If you want to come back to this page then click the logo in the top
-            left.
+            Click the logo in the top left to return to this page at any time.
           </li>
         </ul>
 
         <p className="mb-6 text-gray-400 italic">
-          This version is just a starting point. More features and polish will
-          be added soon!
+          This is just the foundation — more assessments, stats, and awards are
+          coming soon.
         </p>
 
         <div className="flex flex-col sm:flex-row justify-center gap-10">

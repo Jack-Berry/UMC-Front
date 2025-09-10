@@ -25,3 +25,13 @@ export const submitAssessment = async ({ assessmentType, answers }) => {
 
   return res.json();
 };
+
+export const fetchAssessment = async (assessmentType, userId) => {
+  const res = await fetch(
+    `${API_URL}/api/assessment/${assessmentType}/${userId}`
+  );
+  if (!res.ok) {
+    throw new Error("Failed to fetch assessment");
+  }
+  return res.json();
+};

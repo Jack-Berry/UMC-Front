@@ -7,38 +7,35 @@ import Awards from "../components/Awards";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user")) || null
+  );
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function refreshUser() {
       try {
+        if (!user) return navigate("/home"); // no user at all
         const latest = await fetchUserById(user.id);
         setUser(latest);
         localStorage.setItem("user", JSON.stringify(latest));
       } catch (err) {
         console.error("Failed to refresh user", err);
+      } finally {
+        setLoading(false);
       }
     }
-
     refreshUser();
-  }, []);
+  }, [user?.id, navigate]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
-      navigate("/home");
-      return;
+    if (!loading && user && !user.has_completed_assessment) {
+      console.log("Redirecting to initial assessment...");
+      navigate("/assessment/initial");
     }
-    const user = JSON.parse(storedUser);
-    if (!user.has_completed_assessment) {
-      console.log(
-        "Redirecting to assessment...",
-        user,
-        user.has_completed_assessment
-      );
-      navigate("/assessment");
-    }
-  }, [navigate]);
+  }, [loading, user, navigate]);
+
+  if (loading || !user) return <p className="text-white">Loading...</p>;
 
   return (
     <div className="text-white p-6 max-w-4xl mx-auto space-y-6">

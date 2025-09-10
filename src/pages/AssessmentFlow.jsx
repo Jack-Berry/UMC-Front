@@ -1,10 +1,12 @@
+// src/pages/AssessmentFlow.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { submitAssessment } from "../api/assessment";
+import { useNavigate, useParams } from "react-router-dom";
+import { submitAssessment, fetchAssessment } from "../api/assessment";
 import { fetchUserById } from "../api/auth";
 import assessmentData from "../data/assessmentData";
 
 export default function AssessmentFlow() {
+  const { type } = useParams(); // e.g. "initial" or "diy"
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const userId = Number(storedUser?.id);
@@ -12,6 +14,7 @@ export default function AssessmentFlow() {
   const [step, setStep] = useState(0);
   const [scores, setScores] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const LABELS = {
     1: "I am useless",
@@ -21,17 +24,40 @@ export default function AssessmentFlow() {
     5: "Mastered it",
   };
 
-  useEffect(() => {
-    if (!storedUser) {
-      navigate("/home");
-      return;
-    }
-    if (storedUser.has_completed_assessment) {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
+  // For now we only have assessmentData wired for "initial"
+  // Later, you can load category-specific data based on `type`
+  const dataForType = assessmentData;
+  const currentCategory = dataForType[step];
 
-  const currentCategory = assessmentData[step];
+  // Pre-fill answers if assessment already exists
+  useEffect(() => {
+    async function loadExisting() {
+      try {
+        const existing = await fetchAssessment(type, userId);
+        if (existing.answers?.length) {
+          const prefilled = {};
+          existing.answers.forEach((a) => {
+            if (!prefilled[a.category]) prefilled[a.category] = [];
+            const idx = dataForType
+              .find((c) => c.category === a.category)
+              ?.questions.findIndex((q) => q.id === a.question_id);
+            if (idx !== -1) {
+              prefilled[a.category][idx] = a.score;
+            }
+          });
+          setScores(prefilled);
+        }
+      } catch (err) {
+        console.warn("No existing answers or failed to load", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (userId && type) {
+      loadExisting();
+    }
+  }, [type, userId]);
 
   const handleChange = (questionIndex, value) => {
     const updated = { ...scores };
@@ -43,20 +69,19 @@ export default function AssessmentFlow() {
   };
 
   const handleNext = async () => {
-    if (step < assessmentData.length - 1) {
+    if (step < dataForType.length - 1) {
       setStep(step + 1);
     } else {
       setSubmitting(true);
       try {
-        // Flatten scores into per-question answers
         const answers = [];
-        assessmentData.forEach((cat) => {
+        dataForType.forEach((cat) => {
           cat.questions.forEach((q, idx) => {
             const score = scores[cat.category]?.[idx];
             if (score !== undefined) {
               answers.push({
-                questionId: q.id, // string like "diy-1"
-                questionText: q.text, // snapshot
+                questionId: q.id,
+                questionText: q.text,
                 category: cat.category,
                 score,
               });
@@ -65,7 +90,7 @@ export default function AssessmentFlow() {
         });
 
         await submitAssessment({
-          assessmentType: "initial",
+          assessmentType: type,
           answers,
         });
 
@@ -80,15 +105,24 @@ export default function AssessmentFlow() {
     }
   };
 
-  const progress = Math.round(((step + 1) / assessmentData.length) * 100);
+  const handleBack = () => {
+    if (step > 0) {
+      setStep(step - 1);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-white">Loading assessment...</p>;
+  }
+
+  const progress = Math.round(((step + 1) / dataForType.length) * 100);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10 text-white">
-      <h2 className="text-2xl font-bold mb-4">Initial Assessment</h2>
+      <h2 className="text-2xl font-bold mb-4 capitalize">{type} Assessment</h2>
       <p className="text-gray-300 mb-6 max-w-xl">
-        Before you get started, let’s get a quick snapshot of where you're at.
-        This will help us tailor your growth journey and unlock relevant tools,
-        events, and matches.
+        Let’s get a snapshot of where you're at. You can update this later to
+        track progress and unlock insights.
       </p>
 
       <div className="mb-8">
@@ -138,22 +172,35 @@ export default function AssessmentFlow() {
         />
       </div>
 
-      <button
-        onClick={handleNext}
-        disabled={
-          !scores[currentCategory.category] ||
-          scores[currentCategory.category].length !==
-            currentCategory.questions.length ||
-          scores[currentCategory.category].includes(undefined)
-        }
-        className="px-6 py-2 rounded bg-brand-600 hover:bg-brand-500 transition text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {step < assessmentData.length - 1
-          ? "Next"
-          : submitting
-          ? "Submitting..."
-          : "Finish"}
-      </button>
+      <div className="flex justify-between">
+        {step > 0 ? (
+          <button
+            onClick={handleBack}
+            className="px-6 py-2 rounded bg-neutral-700 hover:bg-neutral-600 transition text-white font-medium"
+          >
+            Back
+          </button>
+        ) : (
+          <div /> // empty div to keep spacing consistent
+        )}
+
+        <button
+          onClick={handleNext}
+          disabled={
+            !scores[currentCategory.category] ||
+            scores[currentCategory.category].length !==
+              currentCategory.questions.length ||
+            scores[currentCategory.category].includes(undefined)
+          }
+          className="px-6 py-2 rounded bg-brand-600 hover:bg-brand-500 transition text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {step < dataForType.length - 1
+            ? "Next"
+            : submitting
+            ? "Submitting..."
+            : "Finish"}
+        </button>
+      </div>
     </div>
   );
 }
