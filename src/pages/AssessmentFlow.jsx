@@ -7,7 +7,7 @@ import assessmentData from "../data/assessmentData";
 export default function AssessmentFlow() {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user"));
-  const userId = storedUser?.id;
+  const userId = Number(storedUser?.id);
 
   const [step, setStep] = useState(0);
   const [scores, setScores] = useState({});
@@ -65,7 +65,6 @@ export default function AssessmentFlow() {
         });
 
         await submitAssessment({
-          userId,
           assessmentType: "initial",
           answers,
         });

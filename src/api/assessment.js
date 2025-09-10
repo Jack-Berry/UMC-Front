@@ -8,7 +8,9 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050";
  * @param {string} params.assessmentType - e.g. "initial", "DIY-deep-dive"
  * @param {Array} params.answers - Array of answers [{ questionId, questionText, category, score }]
  */
-export const submitAssessment = async ({ userId, assessmentType, answers }) => {
+export const submitAssessment = async ({ assessmentType, answers }) => {
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const userId = Number(storedUser?.id); // force it to number
   const res = await fetch(`${API_URL}/api/assessment/${assessmentType}`, {
     method: "POST",
     headers: {
