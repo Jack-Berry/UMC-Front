@@ -13,8 +13,6 @@ export default function AssessmentFlow() {
   const [scores, setScores] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  console.log(storedUser);
-
   const LABELS = {
     1: "I am useless",
     2: "Below average",
@@ -29,10 +27,6 @@ export default function AssessmentFlow() {
       return;
     }
     if (storedUser.has_completed_assessment) {
-      console.log(
-        "Redirecting to Dashboard...",
-        storedUser.has_completed_assessment
-      );
       navigate("/dashboard");
     }
   }, [navigate]);
@@ -76,7 +70,7 @@ export default function AssessmentFlow() {
   const progress = Math.round(((step + 1) / assessmentData.length) * 100);
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10 text-white">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10 text-white">
       <h2 className="text-2xl font-bold mb-4">Initial Assessment</h2>
       <p className="text-gray-300 mb-6 max-w-xl">
         Before you get started, let’s get a quick snapshot of where you're at.
@@ -86,35 +80,37 @@ export default function AssessmentFlow() {
 
       <div className="mb-8">
         <h3 className="text-xl font-semibold mb-2">
-          {currentCategory.category}
+          🛠️ {currentCategory.category}
         </h3>
         <p className="text-gray-400 mb-4">{currentCategory.description}</p>
 
         {currentCategory.questions.map((question, index) => (
-          <div key={index} className="mb-6">
-            <p className="mb-2 font-medium">{question}</p>
-            <div className="flex flex-col sm:flex-row gap-4">
+          <div
+            key={index}
+            className="mb-6 border border-neutral-700 p-4 rounded-lg shadow-sm"
+          >
+            <p className="mb-3 font-medium text-base">{question}</p>
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
               {[1, 2, 3, 4, 5].map((val) => {
                 const isSelected =
                   scores[currentCategory.category]?.[index] === val;
                 return (
-                  <div key={val} className="flex flex-col items-center w-20">
-                    <button
-                      onClick={() => handleChange(index, val)}
-                      className={`w-full py-2 rounded border text-sm font-semibold transition
-                        ${
-                          isSelected
-                            ? "bg-brand-500 text-white border-brand-500"
-                            : "bg-neutral-800 text-white border-gray-600 hover:bg-brand-600 hover:border-brand-600"
-                        }
-                      `}
-                    >
-                      {val}
-                    </button>
-                    <span className="text-s text-center mt-1 text-gray-400">
+                  <button
+                    key={val}
+                    onClick={() => handleChange(index, val)}
+                    className={`flex flex-col items-center justify-center p-3 rounded-md border w-full sm:w-20 text-sm font-medium transition
+                      ${
+                        isSelected
+                          ? "bg-brand-600 text-white border-brand-600"
+                          : "bg-neutral-800 text-white border-gray-600 hover:bg-brand-600 hover:border-brand-600"
+                      }
+                    `}
+                  >
+                    <span className="text-lg font-bold">{val}</span>
+                    <span className="text-xs text-gray-300 mt-1">
                       {LABELS[val]}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -122,9 +118,9 @@ export default function AssessmentFlow() {
         ))}
       </div>
 
-      <div className="w-full h-2 bg-gray-700 rounded mb-6">
+      <div className="w-full h-2 bg-neutral-700 rounded mb-6 overflow-hidden">
         <div
-          className="h-full rounded bg-white transition-all"
+          className="h-full bg-brand-500 transition-all duration-500 ease-in-out"
           style={{ width: `${progress}%` }}
         />
       </div>
