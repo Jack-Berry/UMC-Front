@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import MainLogo from "../assets/Main.png";
 
 const PASSWORD = import.meta.env.VITE_SPLASH_PASSWORD;
 
@@ -12,16 +13,20 @@ export default function SplashGate() {
     const saved = localStorage.getItem("authenticated");
     if (saved === "true") {
       setAuthenticated(true);
-      navigate("/home");
     }
   }, []);
+
+  useEffect(() => {
+    if (authenticated) {
+      navigate("/home");
+    }
+  }, [authenticated]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input === PASSWORD) {
       localStorage.setItem("authenticated", "true");
       setAuthenticated(true);
-      navigate("/login");
     } else {
       alert("Incorrect password");
     }
@@ -30,7 +35,7 @@ export default function SplashGate() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
       <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md text-center">
-        <h1 className="text-3xl font-bold mb-4">Useless Men's Co-op</h1>
+        <img src={MainLogo} alt="Logo" className="mx-auto mb-4 w-full h-full" />
         <p className="mb-6 text-gray-300">This page is under construction.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input

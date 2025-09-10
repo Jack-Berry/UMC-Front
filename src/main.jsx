@@ -15,21 +15,16 @@ function ProtectedRoute({ children }) {
   return token ? children : <Navigate to="/login" />;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <Routes>
-      <Route path="/gate" element={<SplashGate />} />
+function AuthenticatedApp() {
+  const isAuthenticated = localStorage.getItem("authenticated") === "true";
 
-      <Route
-        path="/"
-        element={
-          localStorage.getItem("authenticated") === "true" ? (
-            <App />
-          ) : (
-            <SplashGate />
-          )
-        }
-      >
+  if (!isAuthenticated) {
+    return <Navigate to="/gate" />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<App />}>
         <Route index element={<Navigate to="/home" />} />
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
@@ -51,6 +46,15 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           }
         />
       </Route>
+    </Routes>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <BrowserRouter>
+    <Routes>
+      <Route path="/gate" element={<SplashGate />} />
+      <Route path="/*" element={<AuthenticatedApp />} />
     </Routes>
   </BrowserRouter>
 );

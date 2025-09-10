@@ -1,6 +1,7 @@
 // src/components/Navbar.jsx
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import MainLogo from "../assets/Main.png";
 
 export default function Navbar() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -12,17 +13,29 @@ export default function Navbar() {
     navigate("/login");
   };
 
+  const handleReset = () => {
+    localStorage.clear();
+    navigate("/gate");
+  };
+
   return (
     <nav className="bg-neutral-800 text-white px-6 py-4 flex justify-between items-center shadow-md">
-      <div>
-        <Link
-          to="/dashboard"
-          className="text-xl font-bold tracking-wide hover:text-brand-400 transition"
-        >
-          Useless Men's Co-operative
+      <div className="flex items-center">
+        <Link to="/home">
+          <img
+            src={MainLogo}
+            alt="Useless Men's Co-op Logo"
+            className="h-20 w-auto hover:opacity-80 transition"
+          />
         </Link>
       </div>
-      <div>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={handleReset}
+          className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded-md text-sm"
+        >
+          Reset
+        </button>
         {user ? (
           <button
             onClick={handleLogout}
@@ -31,7 +44,7 @@ export default function Navbar() {
             Logout
           </button>
         ) : (
-          <div className="flex gap-4">
+          <>
             <Link
               to="/login"
               className="text-sm text-white hover:text-brand-400 transition"
@@ -44,7 +57,7 @@ export default function Navbar() {
             >
               Register
             </Link>
-          </div>
+          </>
         )}
       </div>
     </nav>
