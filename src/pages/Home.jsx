@@ -6,12 +6,12 @@ import { useEffect } from "react";
 export default function Home() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
+  // useEffect(() => {
+  //   const storedUser = localStorage.getItem("user");
+  //   if (storedUser) {
+  //     navigate("/dashboard");
+  //   }
+  // }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center px-6">
@@ -44,6 +44,10 @@ export default function Home() {
           <li>
             You can log out or reset your access using the buttons at the top.
             This simulates a new user visiting the site.
+          </li>
+          <li className="font-bold text-green-400">
+            If you want to come back to this page then click the logo in the top
+            left.
           </li>
         </ul>
 

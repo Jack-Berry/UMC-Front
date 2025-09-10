@@ -37,12 +37,20 @@ export default function Navbar() {
           Reset
         </button>
         {user ? (
-          <button
-            onClick={handleLogout}
-            className="bg-brand-600 hover:bg-brand-500 transition text-white px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Logout
-          </button>
+          <>
+            <Link
+              to="/dashboard"
+              className="bg-brand-600 hover:bg-brand-500 transition text-white px-4 py-2 rounded-md text-sm font-medium"
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="bg-brand-600 hover:bg-brand-500 transition text-white px-4 py-2 rounded-md text-sm font-medium"
+            >
+              Logout
+            </button>
+          </>
         ) : (
           <>
             <Link
