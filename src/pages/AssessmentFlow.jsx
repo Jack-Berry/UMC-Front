@@ -48,14 +48,28 @@ export default function AssessmentFlow() {
     } else {
       setSubmitting(true);
       try {
-        const scoresByCategory = {};
-        for (const [category, answers] of Object.entries(scores)) {
-          const avg =
-            answers.reduce((acc, val) => acc + val, 0) / answers.length;
-          scoresByCategory[category] = Math.round(avg);
-        }
+        // Flatten scores into per-question answers
+        const answers = [];
+        assessmentData.forEach((cat) => {
+          cat.questions.forEach((q, idx) => {
+            const score = scores[cat.category]?.[idx];
+            if (score !== undefined) {
+              answers.push({
+                questionId: q.id, // string like "diy-1"
+                questionText: q.text, // snapshot
+                category: cat.category,
+                score,
+              });
+            }
+          });
+        });
 
-        await submitAssessment({ userId, scoresByCategory });
+        await submitAssessment({
+          userId,
+          assessmentType: "initial",
+          answers,
+        });
+
         const updatedUser = await fetchUserById(userId);
         localStorage.setItem("user", JSON.stringify(updatedUser));
         navigate("/dashboard");
@@ -84,12 +98,12 @@ export default function AssessmentFlow() {
         </h3>
         <p className="text-gray-400 mb-4">{currentCategory.description}</p>
 
-        {currentCategory.questions.map((question, index) => (
+        {currentCategory.questions.map((q, index) => (
           <div
-            key={index}
+            key={q.id}
             className="mb-6 border border-neutral-700 p-4 rounded-lg shadow-sm"
           >
-            <p className="mb-3 font-medium text-base">{question}</p>
+            <p className="mb-3 font-medium text-base">{q.text}</p>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               {[1, 2, 3, 4, 5].map((val) => {
                 const isSelected =
