@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "../redux/userSlice";
-import { supabase } from "../supabaseClient"; // 🔹 make sure this is set up
+import { supabase } from "../lib/supabaseClient";
 import { updateAvatar, updateProfile } from "../api/users";
 import { Camera, Upload } from "lucide-react";
 
