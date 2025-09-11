@@ -49,11 +49,11 @@ export default function Feed() {
           value={newPost}
           onChange={(e) => setNewPost(e.target.value)}
           placeholder="Share something..."
-          className="flex-1 px-3 py-2 rounded bg-neutral-700 text-white placeholder-gray-400"
+          className="flex-1 min-w-0 px-3 py-2 rounded bg-neutral-700 text-white placeholder-gray-400"
         />
         <button
           onClick={handlePost}
-          className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded text-white font-medium"
+          className="flex-shrink-0 bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded text-white font-medium"
         >
           Post
         </button>
