@@ -1,20 +1,25 @@
 // src/components/Navbar.jsx
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import MainLogo from "../assets/Main.png";
+import { clearUser } from "../redux/userSlice";
+import { resetAssessments } from "../redux/assessmentSlice";
 
 export default function Navbar() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = useSelector((state) => state.user.current);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    dispatch(clearUser());
+    dispatch(resetAssessments());
     navigate("/login");
   };
 
   const handleReset = () => {
-    localStorage.clear();
+    dispatch(clearUser());
+    dispatch(resetAssessments());
     navigate("/gate");
   };
 

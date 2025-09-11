@@ -1,9 +1,10 @@
 // src/pages/Home.jsx
 import { Link } from "react-router-dom";
+import Feed from "../components/Feed";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center px-6">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center px-6">
       <div className="max-w-2xl w-full bg-neutral-800 p-8 rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold mb-4 text-brand-400">
           Welcome to the Useless Men's Co-operative!
@@ -61,6 +62,9 @@ export default function Home() {
             Create an Account
           </Link>
         </div>
+      </div>
+      <div className="max-w-2xl mx-auto w-full">
+        <Feed />
       </div>
     </div>
   );

@@ -2,6 +2,9 @@ import React from "react";
 import "./index.css";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Provider } from "react-redux";
+import { store } from "./redux/store.js";
+import { setUser, clearUser } from "./redux/userSlice"; // ✅ add this
 import SplashGate from "./pages/SplashGate.jsx";
 import App from "./App.jsx";
 import Register from "./pages/Register.jsx";
@@ -50,11 +53,29 @@ function AuthenticatedApp() {
   );
 }
 
+// ✅ Cross-tab sync for user & token
+window.addEventListener("storage", (event) => {
+  if (event.key === "user") {
+    if (event.newValue) {
+      const user = JSON.parse(event.newValue);
+      store.dispatch(setUser(user));
+    } else {
+      store.dispatch(clearUser());
+    }
+  }
+
+  if (event.key === "token" && !event.newValue) {
+    store.dispatch(clearUser());
+  }
+});
+
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <Routes>
-      <Route path="/gate" element={<SplashGate />} />
-      <Route path="/*" element={<AuthenticatedApp />} />
-    </Routes>
-  </BrowserRouter>
+  <Provider store={store}>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/gate" element={<SplashGate />} />
+        <Route path="/*" element={<AuthenticatedApp />} />
+      </Routes>
+    </BrowserRouter>
+  </Provider>
 );
