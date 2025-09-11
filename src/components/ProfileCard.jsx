@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "../redux/userSlice";
 import { supabase } from "../lib/supabaseClient";
 import { updateAvatar, updateProfile } from "../api/users";
-import { Camera, Upload } from "lucide-react";
+import { Camera, Upload, Edit3 } from "lucide-react";
 
 export default function ProfileCard() {
   const dispatch = useDispatch();
@@ -17,7 +17,6 @@ export default function ProfileCard() {
   const [uploading, setUploading] = useState(false);
 
   const fileInputRef = useRef(null);
-
   const initials = (user?.name || "?").slice(0, 1);
 
   async function handleSave() {
@@ -41,14 +40,12 @@ export default function ProfileCard() {
     if (!file) return;
     try {
       setUploading(true);
-
       const fileExt = file.name.split(".").pop();
-      const filePath = `${user.id}/avatar.${fileExt}`; // user folder
+      const filePath = `${user.id}/avatar.${fileExt}`;
 
       const { error } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, { upsert: true });
-
       if (error) throw error;
 
       const { data: publicUrlData } = supabase.storage
@@ -56,7 +53,6 @@ export default function ProfileCard() {
         .getPublicUrl(filePath);
 
       const publicUrl = publicUrlData.publicUrl;
-
       const { user: partial } = await updateAvatar(user.id, publicUrl);
       dispatch(setUser({ ...user, avatar_url: partial.avatar_url }));
     } catch (err) {
@@ -82,14 +78,12 @@ export default function ProfileCard() {
 
   function handleFileChange(e) {
     const file = e.target.files[0];
-    if (file) {
-      uploadAvatar(file); // 🔹 direct upload
-    }
+    if (file) uploadAvatar(file);
   }
 
   return (
-    <div className="bg-neutral-800 p-6 rounded-lg shadow-md space-y-6">
-      {/* Hidden input for both buttons */}
+    <div className="relative bg-neutral-800 p-6 rounded-lg shadow-md space-y-6">
+      {/* Hidden input */}
       <input
         type="file"
         accept="image/*"
@@ -101,9 +95,8 @@ export default function ProfileCard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
         <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div
-            className={`relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-2xl font-bold`}
-          >
+          {/* Avatar */}
+          <div className="relative w-44 h-44 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-2xl font-bold">
             {user?.avatar_url ? (
               <img
                 src={user.avatar_url}
@@ -116,7 +109,7 @@ export default function ProfileCard() {
 
             {edit && (
               <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 p-2">
-                {/* Camera button (hidden on desktop) */}
+                {/* Camera button (mobile only) */}
                 <button
                   onClick={openCamera}
                   className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm px-3 py-2 rounded-md w-28 transition sm:hidden"
@@ -139,6 +132,7 @@ export default function ProfileCard() {
             )}
           </div>
 
+          {/* Name + Meta */}
           <div className="text-center sm:text-left">
             {edit ? (
               <input
@@ -156,38 +150,54 @@ export default function ProfileCard() {
           </div>
         </div>
 
-        <div className="flex gap-2 justify-center sm:justify-end">
-          {edit ? (
-            <>
-              <button
-                className="px-4 py-2 bg-neutral-700 rounded"
-                onClick={() => {
-                  setEdit(false);
-                  setName(user?.name || "");
-                  setUsefulAt(user?.useful_at || "");
-                  setUselessAt(user?.useless_at || "");
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-brand-600 rounded disabled:opacity-50"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-            </>
-          ) : (
+        {/* Desktop Edit button */}
+        {!edit && (
+          <div className="hidden sm:flex absolute top-4 right-4">
             <button
-              className="px-4 py-2 bg-neutral-700 rounded"
+              className="p-2 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white shadow-md"
               onClick={() => setEdit(true)}
             >
-              Edit
+              <Edit3 size={18} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Mobile Edit button */}
+      {!edit && (
+        <div className="flex justify-center sm:hidden">
+          <button
+            className="p-2 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white shadow-md"
+            onClick={() => setEdit(true)}
+          >
+            <Edit3 size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Save/Cancel buttons (when editing) */}
+      {edit && (
+        <div className="flex gap-2 justify-center sm:justify-end">
+          <button
+            className="px-4 py-2 bg-neutral-700 rounded"
+            onClick={() => {
+              setEdit(false);
+              setName(user?.name || "");
+              setUsefulAt(user?.useful_at || "");
+              setUselessAt(user?.useless_at || "");
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-4 py-2 bg-brand-600 rounded disabled:opacity-50"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      )}
 
       {/* About Me */}
       <div>
