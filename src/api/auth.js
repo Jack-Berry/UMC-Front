@@ -1,28 +1,31 @@
 // src/api/auth.js
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050";
+import apiFetch from "./apiClient";
 
-export const registerUser = async (userData) => {
-  const res = await fetch(`${API_URL}/api/auth/register`, {
+export const registerUser = (userData) =>
+  apiFetch("/api/auth/register", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });
-  if (!res.ok) throw new Error("Registration failed");
-  return res.json();
-};
 
 export const loginUser = async (credentials) => {
-  const res = await fetch(`${API_URL}/api/auth/login`, {
+  const res = await apiFetch("/api/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   });
-  if (!res.ok) throw new Error("Login failed");
-  return res.json();
+
+  // Store tokens if provided
+  if (res.accessToken) {
+    localStorage.setItem("accessToken", res.accessToken);
+  }
+  if (res.refreshToken) {
+    localStorage.setItem("refreshToken", res.refreshToken);
+  }
+  if (res.user) {
+    localStorage.setItem("user", JSON.stringify(res.user));
+  }
+
+  return res;
 };
 
-export const fetchUserById = async (userId) => {
-  const res = await fetch(`${API_URL}/api/auth/user/${userId}`);
-  if (!res.ok) throw new Error("Failed to fetch user");
-  return res.json();
-};
+export const fetchUserById = (userId) =>
+  apiFetch(`/api/auth/user/${userId}`, { method: "GET" });
