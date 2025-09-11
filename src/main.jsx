@@ -4,19 +4,16 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./redux/store.js";
-import { setUser, clearUser } from "./redux/userSlice"; // ✅ add this
+import { setUser, clearUser } from "./redux/userSlice";
+import { useSelector } from "react-redux";
 import SplashGate from "./pages/SplashGate.jsx";
 import App from "./App.jsx";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AssessmentFlow from "./pages/AssessmentFlow.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Home from "./pages/Home.jsx";
-
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" />;
-}
 
 function AuthenticatedApp() {
   const isAuthenticated = localStorage.getItem("authenticated") === "true";
@@ -64,7 +61,7 @@ window.addEventListener("storage", (event) => {
     }
   }
 
-  if (event.key === "token" && !event.newValue) {
+  if (event.key === "accessToken" && !event.newValue) {
     store.dispatch(clearUser());
   }
 });

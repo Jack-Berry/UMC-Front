@@ -1,8 +1,7 @@
-// src/components/AssessmentReminder.jsx
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { ClipboardList } from "lucide-react";
 
 export default function AssessmentReminder() {
   const [expanded, setExpanded] = useState(false);
@@ -38,69 +37,91 @@ export default function AssessmentReminder() {
     ],
   };
 
-  const incomplete =
-    !status.initial || status.inDepth.some((a) => !a.completed);
+  const total = 1 + status.inDepth.length;
+  const completed =
+    (status.initial ? 1 : 0) + status.inDepth.filter((a) => a.completed).length;
+  const incomplete = completed < total;
 
   if (!incomplete) return null;
 
   return (
     <>
-      <div className="bg-brand-700 text-white p-4 rounded shadow-md relative">
-        <div className="flex justify-between items-center">
-          <p>Complete your assessments to unlock insights and awards!</p>
+      <div className="bg-brand-700 text-white p-5 rounded-lg shadow-lg relative">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          {/* Left side: icon + progress */}
+          <div className="flex items-center gap-3 flex-1">
+            <ClipboardList className="w-6 h-6 shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-bold text-lg">Your Assessments</h3>
+              <p className="text-sm text-gray-200">
+                {completed} of {total} completed
+              </p>
+              {/* Progress bar */}
+              <div className="w-full h-2 bg-neutral-600 rounded mt-1">
+                <div
+                  className="h-2 bg-brand-500 rounded"
+                  style={{ width: `${(completed / total) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side: button */}
           <button
-            className="underline text-sm"
+            className="bg-brand-600 hover:bg-brand-500 text-white font-semibold px-4 py-2 rounded transition w-full sm:w-auto"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? "Hide" : "View"}
+            {expanded ? "Hide" : "Take Assessments"}
           </button>
         </div>
 
-        {expanded && (
-          <div className="mt-4 space-y-4">
-            {/* Initial Assessment */}
-            <div
-              className={`p-3 rounded flex justify-between items-center ${
-                status.initial ? "bg-green-700" : "bg-neutral-800"
-              }`}
+        <div
+          className={`overflow-hidden transition-all duration-500 ${
+            expanded ? "max-h-96 mt-4" : "max-h-0"
+          }`}
+        >
+          {/* Initial Assessment */}
+          <div
+            className={`p-3 rounded flex justify-between items-center mb-2 ${
+              status.initial ? "bg-green-700" : "bg-neutral-800"
+            }`}
+          >
+            <span>Initial Assessment</span>
+            <button
+              onClick={() => navigate("/assessment/initial")}
+              className="text-sm underline"
             >
-              <span>Initial Assessment</span>
-              <button
-                onClick={() => navigate("/assessment/initial")}
-                className="text-sm underline"
-              >
-                {status.initial ? "Review / Update" : "Start"}
-              </button>
-            </div>
-
-            {/* In-depth Assessments */}
-            <ul className="space-y-2">
-              {status.inDepth.map((a, i) => (
-                <li
-                  key={i}
-                  className={`flex justify-between p-2 rounded ${
-                    a.completed ? "bg-green-700" : "bg-neutral-800"
-                  }`}
-                >
-                  <span>{a.category}</span>
-                  <button
-                    onClick={() => {
-                      if (a.completed) {
-                        navigate(`/assessment/${a.category.toLowerCase()}`);
-                      } else {
-                        setModalCategory(a.category);
-                        setModalOpen(true);
-                      }
-                    }}
-                    className="text-sm underline"
-                  >
-                    {a.completed ? "Review / Update" : "Start"}
-                  </button>
-                </li>
-              ))}
-            </ul>
+              {status.initial ? "Review / Update" : "Start"}
+            </button>
           </div>
-        )}
+
+          {/* In-depth Assessments */}
+          <ul className="space-y-2">
+            {status.inDepth.map((a, i) => (
+              <li
+                key={i}
+                className={`flex justify-between p-3 rounded ${
+                  a.completed ? "bg-green-700" : "bg-neutral-800"
+                }`}
+              >
+                <span>{a.category}</span>
+                <button
+                  onClick={() => {
+                    if (a.completed) {
+                      navigate(`/assessment/${a.category.toLowerCase()}`);
+                    } else {
+                      setModalCategory(a.category);
+                      setModalOpen(true);
+                    }
+                  }}
+                  className="text-sm underline"
+                >
+                  {a.completed ? "Review / Update" : "Start"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       {modalOpen && (

@@ -12,6 +12,8 @@ import AssessmentReminder from "../components/AssessmentReminder";
 import ProfileStats from "../components/ProfileStats";
 import Awards from "../components/Awards";
 import ProfileCard from "../components/ProfileCard";
+import FriendsList from "../components/FriendsList";
+import MatchesList from "../components/MatchesList";
 import { calculateProfileCompletion } from "../utils/profileCompletion";
 
 export default function Dashboard() {
@@ -52,14 +54,6 @@ export default function Dashboard() {
     }
   }, [user, assessmentStatus, dispatch]);
 
-  // 🔹 Redirect if no user after loading
-  useEffect(() => {
-    if (!loading && !user) {
-      console.log("Home redirect triggered");
-      navigate("/home");
-    }
-  }, [loading, user, navigate]);
-
   // 🔹 Redirect if user hasn’t done assessment
   useEffect(() => {
     if (!loading && user && !user.has_completed_assessment) {
@@ -77,6 +71,8 @@ export default function Dashboard() {
       <ProfileCard />
       <ProfileStats />
       <Awards />
+      <FriendsList />
+      <MatchesList />
     </div>
   );
 }
