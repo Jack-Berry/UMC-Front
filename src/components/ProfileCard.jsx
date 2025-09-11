@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "../redux/userSlice";
-import AvatarUploader from "./AvatarUploader";
+import { supabase } from "../supabaseClient"; // 🔹 make sure this is set up
 import { updateAvatar, updateProfile } from "../api/users";
 import { Camera, Upload } from "lucide-react";
 
@@ -13,8 +13,8 @@ export default function ProfileCard() {
   const [name, setName] = useState(user?.name || "");
   const [usefulAt, setUsefulAt] = useState(user?.useful_at || "");
   const [uselessAt, setUselessAt] = useState(user?.useless_at || "");
-  const [uploadFile, setUploadFile] = useState(null); // 🔹 store file for uploader
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -37,12 +37,35 @@ export default function ProfileCard() {
     }
   }
 
-  async function handleAvatarUploaded(publicUrl) {
+  async function uploadAvatar(file) {
+    if (!file) return;
     try {
+      setUploading(true);
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase storage
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(fileName);
+
+      const publicUrl = publicUrlData.publicUrl;
+
+      // Save to backend
       const { user: partial } = await updateAvatar(user.id, publicUrl);
       dispatch(setUser({ ...user, avatar_url: partial.avatar_url }));
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -63,7 +86,7 @@ export default function ProfileCard() {
   function handleFileChange(e) {
     const file = e.target.files[0];
     if (file) {
-      setUploadFile(file);
+      uploadAvatar(file); // 🔹 direct upload
     }
   }
 
@@ -100,18 +123,20 @@ export default function ProfileCard() {
                 <button
                   onClick={openCamera}
                   className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm px-3 py-2 rounded-md w-28 transition sm:hidden"
+                  disabled={uploading}
                 >
                   <Camera size={16} />
-                  Camera
+                  {uploading ? "..." : "Camera"}
                 </button>
 
                 {/* Upload button */}
                 <button
                   onClick={openFilePicker}
                   className="flex items-center justify-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white text-sm px-3 py-2 rounded-md w-28 transition"
+                  disabled={uploading}
                 >
                   <Upload size={16} />
-                  Upload
+                  {uploading ? "..." : "Upload"}
                 </button>
               </div>
             )}
@@ -166,15 +191,6 @@ export default function ProfileCard() {
           )}
         </div>
       </div>
-
-      {uploadFile && (
-        <AvatarUploader
-          userId={user.id}
-          file={uploadFile} // 🔹 pass file directly
-          onUploaded={handleAvatarUploaded}
-          onClose={() => setUploadFile(null)}
-        />
-      )}
 
       {/* About Me */}
       <div>
