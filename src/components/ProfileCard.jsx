@@ -43,23 +43,20 @@ export default function ProfileCard() {
       setUploading(true);
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/avatar.${fileExt}`; // user folder
 
-      // Upload to Supabase storage
       const { error } = await supabase.storage
         .from("avatars")
-        .upload(fileName, file);
+        .upload(filePath, file, { upsert: true });
 
       if (error) throw error;
 
-      // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from("avatars")
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
       const publicUrl = publicUrlData.publicUrl;
 
-      // Save to backend
       const { user: partial } = await updateAvatar(user.id, publicUrl);
       dispatch(setUser({ ...user, avatar_url: partial.avatar_url }));
     } catch (err) {
