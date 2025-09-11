@@ -13,10 +13,10 @@ export default function ProfileCard() {
   const [name, setName] = useState(user?.name || "");
   const [usefulAt, setUsefulAt] = useState(user?.useful_at || "");
   const [uselessAt, setUselessAt] = useState(user?.useless_at || "");
-  const [showUploader, setShowUploader] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null); // 🔹 store file for uploader
   const [saving, setSaving] = useState(false);
 
-  const fileInputRef = useRef(null); // 🔹 single hidden input
+  const fileInputRef = useRef(null);
 
   const initials = (user?.name || "?").slice(0, 1);
 
@@ -63,7 +63,7 @@ export default function ProfileCard() {
   function handleFileChange(e) {
     const file = e.target.files[0];
     if (file) {
-      setShowUploader(file);
+      setUploadFile(file);
     }
   }
 
@@ -79,10 +79,10 @@ export default function ProfileCard() {
       />
 
       {/* Header */}
-      <div className="flex items-center gap-4 justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           <div
-            className={`relative w-40 h-40 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-2xl font-bold`}
+            className={`relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-2xl font-bold`}
           >
             {user?.avatar_url ? (
               <img
@@ -117,12 +117,12 @@ export default function ProfileCard() {
             )}
           </div>
 
-          <div>
+          <div className="text-center sm:text-left">
             {edit ? (
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="bg-neutral-700 text-white px-3 py-2 rounded w-56"
+                className="bg-neutral-700 text-white px-3 py-2 rounded w-56 max-w-full"
                 placeholder="Your name"
               />
             ) : (
@@ -134,7 +134,7 @@ export default function ProfileCard() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-center sm:justify-end">
           {edit ? (
             <>
               <button
@@ -167,11 +167,12 @@ export default function ProfileCard() {
         </div>
       </div>
 
-      {showUploader && (
+      {uploadFile && (
         <AvatarUploader
           userId={user.id}
+          file={uploadFile} // 🔹 pass file directly
           onUploaded={handleAvatarUploaded}
-          onClose={() => setShowUploader(false)}
+          onClose={() => setUploadFile(null)}
         />
       )}
 
