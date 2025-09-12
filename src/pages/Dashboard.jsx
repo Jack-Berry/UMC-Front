@@ -24,22 +24,30 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch latest user + assessments when we have a user.id
+  // 🔹 Fetch latest user + all assessments when we have a user.id
   useEffect(() => {
     async function refreshUser() {
       if (!user?.id) return;
       try {
         const latest = await fetchUserById(user.id);
-        dispatch(setUser(latest)); // ✅ middleware syncs it
-        dispatch(
-          getAssessment({ assessmentType: "initial", userId: latest.id })
+        dispatch(setUser(latest));
+
+        // fetch all assessment types
+        const types = [
+          "initial",
+          "diy",
+          "technology",
+          "self-care",
+          "communication",
+          "community",
+        ];
+        types.forEach((type) =>
+          dispatch(getAssessment({ assessmentType: type, userId: latest.id }))
         );
-        console.log("✅ Dispatched getAssessment for initial");
       } catch (err) {
         console.error("Failed to refresh user", err);
       } finally {
         setLoading(false);
-        console.log("✅ Finished loading user data");
       }
     }
     refreshUser();
@@ -50,14 +58,12 @@ export default function Dashboard() {
     if (user) {
       const completion = calculateProfileCompletion(user, assessmentStatus);
       dispatch(setProfileCompletion(completion));
-      console.log("🔄 Recalculated profileCompletion:", completion);
     }
   }, [user, assessmentStatus, dispatch]);
 
-  // 🔹 Redirect if user hasn’t done assessment
+  // 🔹 Redirect if user hasn’t done initial assessment
   useEffect(() => {
     if (!loading && user && !user.has_completed_assessment) {
-      console.log("Assessment redirect triggered");
       navigate("/assessment/initial");
     }
   }, [loading, user, navigate]);

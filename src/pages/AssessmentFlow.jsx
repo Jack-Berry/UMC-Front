@@ -1,9 +1,12 @@
 // src/pages/AssessmentFlow.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { submitAssessment, fetchAssessment } from "../api/assessment";
-import { fetchUserById } from "../api/auth";
-import assessmentData from "../data/assessmentData";
+import {
+  submitAssessment,
+  fetchAssessment,
+  fetchAssessmentQuestions,
+} from "../api/assessment";
+import { formatAssessmentQuestions } from "../utils/formatAssessment";
 
 export default function AssessmentFlow() {
   const { type } = useParams(); // e.g. "initial" or "diy"
@@ -15,6 +18,8 @@ export default function AssessmentFlow() {
   const [scores, setScores] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [flowData, setFlowData] = useState([]);
+  const [comingSoon, setComingSoon] = useState(false);
 
   const LABELS = {
     1: "I am useless",
@@ -24,21 +29,39 @@ export default function AssessmentFlow() {
     5: "Mastered it",
   };
 
-  // For now we only have assessmentData wired for "initial"
-  // Later, you can load category-specific data based on `type`
-  const dataForType = assessmentData;
-  const currentCategory = dataForType[step];
+  // 🔹 Load questions dynamically from DB
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        const res = await fetchAssessmentQuestions(type);
+        if (!res.questions || res.questions.length === 0) {
+          setComingSoon(true);
+          return;
+        }
 
-  // Pre-fill answers if assessment already exists
+        const formatted = formatAssessmentQuestions(res.questions);
+        setFlowData(formatted);
+      } catch (err) {
+        console.error("Failed to load questions:", err);
+        setComingSoon(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuestions();
+  }, [type]);
+
+  // 🔹 Pre-fill answers if they exist
   useEffect(() => {
     async function loadExisting() {
       try {
         const existing = await fetchAssessment(type, userId);
-        if (existing.answers?.length) {
+        if (existing.answers?.length && flowData.length > 0) {
           const prefilled = {};
           existing.answers.forEach((a) => {
             if (!prefilled[a.category]) prefilled[a.category] = [];
-            const idx = dataForType
+            const idx = flowData
               .find((c) => c.category === a.category)
               ?.questions.findIndex((q) => q.id === a.question_id);
             if (idx !== -1) {
@@ -49,15 +72,48 @@ export default function AssessmentFlow() {
         }
       } catch (err) {
         console.warn("No existing answers or failed to load", err);
-      } finally {
-        setLoading(false);
       }
     }
 
-    if (userId && type) {
+    if (userId && type && flowData.length > 0) {
       loadExisting();
     }
-  }, [type, userId]);
+  }, [type, userId, flowData]);
+
+  // 🔹 Ensure follow-ups are injected when prefilled scores exist
+  useEffect(() => {
+    if (flowData.length === 0 || Object.keys(scores).length === 0) return;
+
+    flowData.forEach((category) => {
+      category.questions.forEach((q, idx) => {
+        const score = scores[category.category]?.[idx];
+        if (
+          score >= (q.followUps?.minScore || 999) &&
+          q.followUps?.questions?.length > 0
+        ) {
+          const followUpCategory = `${q.id}-advanced`;
+          const hasFollowUps = flowData.some(
+            (c) => c.category === followUpCategory
+          );
+
+          if (!hasFollowUps) {
+            const followUpStep = {
+              category: followUpCategory,
+              title: `Advanced ${category.category}`,
+              description: `Follow-up: ${q.text}`,
+              questions: q.followUps.questions.map((fq) => ({
+                ...fq,
+                followUpsParent: q.id,
+              })),
+            };
+            setFlowData((prev) => [...prev, followUpStep]);
+          }
+        }
+      });
+    });
+  }, [flowData, scores]);
+
+  const currentCategory = flowData[step];
 
   const handleChange = (questionIndex, value) => {
     const updated = { ...scores };
@@ -66,16 +122,49 @@ export default function AssessmentFlow() {
     }
     updated[currentCategory.category][questionIndex] = parseInt(value);
     setScores(updated);
+
+    const q = currentCategory.questions[questionIndex];
+    if (!q || !q.followUps) return;
+
+    const followUpCategory = `${q.id}-advanced`;
+    const hasFollowUps = flowData.some((c) => c.category === followUpCategory);
+
+    if (value >= q.followUps.minScore) {
+      if (!hasFollowUps && q.followUps.questions.length > 0) {
+        const followUpStep = {
+          category: followUpCategory,
+          title: `Advanced ${currentCategory.category}`,
+          description: `Follow-up: ${q.text}`,
+          questions: q.followUps.questions.map((fq) => ({
+            ...fq,
+            followUpsParent: q.id,
+          })),
+        };
+        setFlowData((prev) => [...prev, followUpStep]);
+      }
+    } else if (hasFollowUps) {
+      setFlowData((prev) =>
+        prev.filter((c) => c.category !== followUpCategory)
+      );
+      setScores((prev) => {
+        const newScores = { ...prev };
+        delete newScores[followUpCategory];
+        return newScores;
+      });
+      if (currentCategory.category === followUpCategory && step > 0) {
+        setStep(step - 1);
+      }
+    }
   };
 
   const handleNext = async () => {
-    if (step < dataForType.length - 1) {
+    if (step < flowData.length - 1) {
       setStep(step + 1);
     } else {
       setSubmitting(true);
       try {
         const answers = [];
-        dataForType.forEach((cat) => {
+        flowData.forEach((cat) => {
           cat.questions.forEach((q, idx) => {
             const score = scores[cat.category]?.[idx];
             if (score !== undefined) {
@@ -84,6 +173,7 @@ export default function AssessmentFlow() {
                 questionText: q.text,
                 category: cat.category,
                 score,
+                is_followup: !!q.followUpsParent,
               });
             }
           });
@@ -94,8 +184,6 @@ export default function AssessmentFlow() {
           answers,
         });
 
-        const updatedUser = await fetchUserById(userId);
-        localStorage.setItem("user", JSON.stringify(updatedUser));
         navigate("/dashboard");
       } catch (err) {
         console.error("Assessment submission failed", err);
@@ -106,16 +194,32 @@ export default function AssessmentFlow() {
   };
 
   const handleBack = () => {
-    if (step > 0) {
-      setStep(step - 1);
-    }
+    if (step > 0) setStep(step - 1);
   };
 
   if (loading) {
     return <p className="text-white">Loading assessment...</p>;
   }
 
-  const progress = Math.round(((step + 1) / dataForType.length) * 100);
+  if (comingSoon) {
+    return (
+      <div className="text-white p-6 text-center">
+        <h2 className="text-2xl font-bold mb-2">Coming Soon 🚧</h2>
+        <p>
+          The <span className="capitalize">{type}</span> assessment isn’t ready
+          yet — we’re working on it!
+        </p>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="mt-4 px-4 py-2 bg-brand-600 rounded hover:bg-brand-500 transition"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  const progress = Math.round(((step + 1) / flowData.length) * 100);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10 text-white">
@@ -127,7 +231,7 @@ export default function AssessmentFlow() {
 
       <div className="mb-8">
         <h3 className="text-xl font-semibold mb-2">
-          🛠️ {currentCategory.category}
+          {currentCategory.title || currentCategory.category}
         </h3>
         <p className="text-gray-400 mb-4">{currentCategory.description}</p>
 
@@ -181,7 +285,7 @@ export default function AssessmentFlow() {
             Back
           </button>
         ) : (
-          <div /> // empty div to keep spacing consistent
+          <div />
         )}
 
         <button
@@ -194,7 +298,7 @@ export default function AssessmentFlow() {
           }
           className="px-6 py-2 rounded bg-brand-600 hover:bg-brand-500 transition text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {step < dataForType.length - 1
+          {step < flowData.length - 1
             ? "Next"
             : submitting
             ? "Submitting..."

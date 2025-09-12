@@ -1,3 +1,4 @@
+// src/components/AssessmentReminder.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -16,22 +17,27 @@ export default function AssessmentReminder() {
     inDepth: [
       {
         category: "DIY",
+        slug: "diy",
         completed: assessments.byType.diy?.completed || false,
       },
       {
         category: "Technology",
+        slug: "technology",
         completed: assessments.byType.technology?.completed || false,
       },
       {
         category: "Self-care",
+        slug: "self-care",
         completed: assessments.byType["self-care"]?.completed || false,
       },
       {
         category: "Communication",
+        slug: "communication",
         completed: assessments.byType.communication?.completed || false,
       },
       {
         category: "Community",
+        slug: "community",
         completed: assessments.byType.community?.completed || false,
       },
     ],
@@ -107,9 +113,20 @@ export default function AssessmentReminder() {
                 <span>{a.category}</span>
                 <button
                   onClick={() => {
-                    if (a.completed) {
-                      navigate(`/assessment/${a.category.toLowerCase()}`);
+                    if (
+                      a.completed ||
+                      [
+                        "diy",
+                        "technology",
+                        "self-care",
+                        "communication",
+                        "community",
+                      ].includes(a.slug)
+                    ) {
+                      // Allow live or completed assessments
+                      navigate(`/assessment/${a.slug}`);
                     } else {
+                      // Otherwise show "coming soon"
                       setModalCategory(a.category);
                       setModalOpen(true);
                     }

@@ -21,3 +21,8 @@ export const fetchAssessment = (assessmentType, userId) =>
   apiFetch(`/api/assessment/${assessmentType}/${userId}`, {
     method: "GET",
   });
+
+export const fetchAssessmentQuestions = (assessmentType) =>
+  apiFetch(`/api/assessment/${assessmentType}/questions`, {
+    method: "GET",
+  });

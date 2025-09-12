@@ -60,22 +60,30 @@ export const selectAssessmentStatus = createSelector(
   (byType) => ({
     initial: byType.initial?.completed || false,
     inDepth: [
-      { category: "DIY", completed: byType.DIY?.completed || false },
+      {
+        category: "DIY",
+        slug: "diy",
+        completed: byType.diy?.completed || false,
+      },
       {
         category: "Technology",
-        completed: byType.Technology?.completed || false,
+        slug: "technology",
+        completed: byType.technology?.completed || false,
       },
       {
         category: "Self-care",
-        completed: byType["Self-care"]?.completed || false,
+        slug: "self-care",
+        completed: byType["self-care"]?.completed || false,
       },
       {
         category: "Communication",
-        completed: byType.Communication?.completed || false,
+        slug: "communication",
+        completed: byType.communication?.completed || false,
       },
       {
         category: "Community",
-        completed: byType.Community?.completed || false,
+        slug: "community",
+        completed: byType.community?.completed || false,
       },
     ],
   })

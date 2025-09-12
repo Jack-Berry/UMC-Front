@@ -41,13 +41,22 @@ export function calculateAssessmentCompletion(statusOrByType) {
 export function calculateProfileCompletion(user, assessmentStatus) {
   if (!user) return 0;
 
-  console.log("calculateProfileCompletion got:", assessmentStatus);
-
   const assessmentsDone = calculateAssessmentCompletion(assessmentStatus);
 
   const emailVerified = !!user.email_verified;
-  const hasProfilePic = !!user.profile_picture_url;
-  const hasAbout = !!user.about && user.about.trim().length > 10;
+
+  // ✅ Check profile picture URL is present, non-empty, and not just "null"/"undefined"
+  const hasProfilePic =
+    typeof user.avatar_url === "string" &&
+    user.avatar_url.trim() !== "" &&
+    user.avatar_url !== "null" &&
+    user.avatar_url !== "undefined";
+
+  // ✅ About section OR useful/useless fields
+  const hasAbout =
+    (!!user.about && user.about.trim().length > 10) ||
+    (!!user.useful_at && user.useful_at.trim().length > 2) ||
+    (!!user.useless_at && user.useless_at.trim().length > 2);
 
   let score = 0;
   score += assessmentsDone * PROFILE_CRITERIA.assessments;
