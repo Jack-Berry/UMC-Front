@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { CheckCircle, XCircle } from "lucide-react";
+import { calculateAssessmentScore } from "../utils/calculateAssessmentScore";
 
 export default function ProfileStats() {
   const user = useSelector((state) => state.user.current);
@@ -13,14 +14,32 @@ export default function ProfileStats() {
   const completionPercent = Math.min(Math.ceil(profileCompletion * 100), 100);
   const [expanded, setExpanded] = useState(false);
 
-  const score = user?.overall_score;
+  const assessmentScore = useMemo(() => {
+    return calculateAssessmentScore(assessments);
+  }, [assessments]);
+  const score = assessmentScore;
   const scoreLabel = useMemo(() => {
     if (!score) return { label: "Unrated", color: "bg-gray-500" };
-    if (score < 2) return { label: "Getting Started", color: "bg-red-600" };
-    if (score < 3.5)
-      return { label: "Making Progress", color: "bg-yellow-500" };
-    if (score < 4.5) return { label: "Strong Skills", color: "bg-green-500" };
-    return { label: "Expert", color: "bg-brand-500" };
+
+    if (score <= 3000)
+      return { label: "Getting Started", color: "bg-gray-400" };
+    if (score <= 7500)
+      return { label: "Finding Your Feet", color: "bg-sky-400" };
+    if (score <= 15000)
+      return { label: "Making Progress", color: "bg-sky-500" };
+    if (score <= 25000)
+      return { label: "Building Useful Skills", color: "bg-cyan-500" };
+    if (score <= 40000)
+      return { label: "Reliable & Capable", color: "bg-teal-500" };
+    if (score <= 55000) return { label: "Well-Rounded", color: "bg-green-500" };
+    if (score <= 70000)
+      return { label: "Strong Skills", color: "bg-emerald-500" };
+    if (score <= 85000)
+      return { label: "Community Asset", color: "bg-indigo-500" };
+    if (score <= 97850)
+      return { label: "Leader Among Men", color: "bg-indigo-600" };
+
+    return { label: "Legendary", color: "bg-brand-500" };
   }, [score]);
 
   // ✅ Check profile requirements

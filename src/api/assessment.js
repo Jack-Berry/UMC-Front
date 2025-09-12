@@ -26,3 +26,9 @@ export const fetchAssessmentQuestions = (assessmentType) =>
   apiFetch(`/api/assessment/${assessmentType}/questions`, {
     method: "GET",
   });
+
+export const wipeAllAssessments = async (userId) =>
+  apiFetch(`/api/assessment/all/${userId}`, { method: "DELETE" });
+
+export const wipeAssessment = async (assessmentType, userId) =>
+  apiFetch(`/api/assessment/${assessmentType}/${userId}`, { method: "DELETE" });
