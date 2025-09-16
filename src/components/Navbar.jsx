@@ -52,6 +52,14 @@ export default function Navbar() {
             >
               Dashboard
             </Link>
+            {user.is_admin && (
+              <Link
+                to="/admin"
+                className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Admin
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-md text-sm font-medium"
@@ -97,6 +105,15 @@ export default function Navbar() {
               >
                 Dashboard
               </Link>
+              {user.is_admin && (
+                <Link
+                  to="/admin"
+                  className="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded text-sm text-center"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Admin
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="bg-brand-600 hover:bg-brand-500 px-3 py-2 rounded text-sm"

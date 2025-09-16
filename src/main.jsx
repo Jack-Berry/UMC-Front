@@ -5,7 +5,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./redux/store.js";
 import { setUser, clearUser } from "./redux/userSlice";
-import { useSelector } from "react-redux";
 import SplashGate from "./pages/SplashGate.jsx";
 import App from "./App.jsx";
 import Register from "./pages/Register.jsx";
@@ -13,6 +12,10 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AssessmentFlow from "./pages/AssessmentFlow.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AdminGuard from "./components/AdminGuard.jsx";
+import AdminLayout from "./pages/admin/AdminLayout.jsx";
+import AdminAssessments from "./pages/admin/AdminAssessments.jsx";
+import EditAssessment from "./pages/admin/EditAssessment.jsx";
 import Home from "./pages/Home.jsx";
 
 function AuthenticatedApp() {
@@ -45,6 +48,25 @@ function AuthenticatedApp() {
             </ProtectedRoute>
           }
         />
+
+        {/* 🔹 Admin routes */}
+        <Route
+          path="admin"
+          element={
+            <AdminGuard>
+              <AdminLayout />
+            </AdminGuard>
+          }
+        >
+          <Route index element={<AdminAssessments />} />
+          {/* parent questions */}
+          <Route path="assessments/:type" element={<EditAssessment />} />
+          {/* follow-ups (uses the same component with parentId) */}
+          <Route
+            path="assessments/:type/:parentId"
+            element={<EditAssessment />}
+          />
+        </Route>
       </Route>
     </Routes>
   );
