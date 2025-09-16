@@ -29,20 +29,28 @@ export default function AssessmentFlow() {
     5: "Mastered it",
   };
 
-  // 🔹 Load questions dynamically from DB
+  // inside useEffect in AssessmentFlow.jsx
   useEffect(() => {
     async function loadQuestions() {
       try {
         const res = await fetchAssessmentQuestions(type);
-        if (!res.questions || res.questions.length === 0) {
+        console.log("🔍 API response for", type, ":", res);
+
+        const raw = Array.isArray(res) ? res : res?.questions || [];
+        console.log("🔍 Parsed raw questions:", raw);
+
+        if (!raw.length) {
+          console.warn("⚠️ No questions found for", type);
           setComingSoon(true);
           return;
         }
 
-        const formatted = formatAssessmentQuestions(res.questions);
+        const formatted = formatAssessmentQuestions(raw);
+        console.log("✅ Formatted flowData:", formatted);
+
         setFlowData(formatted);
       } catch (err) {
-        console.error("Failed to load questions:", err);
+        console.error("❌ Failed to load questions:", err);
         setComingSoon(true);
       } finally {
         setLoading(false);

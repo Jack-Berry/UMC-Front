@@ -1,52 +1,56 @@
 // src/components/AssessmentReminder.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { ClipboardList, CheckCircle2 } from "lucide-react";
 import Toast from "./Toast";
 import { wipeAllAssessments, wipeAssessment } from "../api/assessment";
 import { getAssessment } from "../redux/assessmentSlice";
+import apiFetch from "../api/apiClient";
 
 export default function AssessmentReminder() {
   const [expanded, setExpanded] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalCategory, setModalCategory] = useState("");
   const [toast, setToast] = useState(null);
+  const [available, setAvailable] = useState([]);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const assessments = useSelector((state) => state.assessments);
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // 🔹 Fetch available assessment types/categories dynamically
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/admin/assessment/categories`);
+        const byType = new Map();
+        for (const r of res) {
+          if (!byType.has(r.assessment_type)) {
+            byType.set(r.assessment_type, r.category);
+          }
+        }
+        const list = Array.from(byType.entries()).map(([slug, label]) => ({
+          slug,
+          category: label,
+        }));
+        setAvailable(list);
+      } catch (err) {
+        console.error("Failed to load assessments list", err);
+        setAvailable([]);
+      }
+    })();
+  }, []);
+
+  // 🔹 Build status from store + available types
   const status = {
     initial: assessments.byType.initial?.completed || false,
-    inDepth: [
-      {
-        category: "DIY",
-        slug: "diy",
-        completed: assessments.byType.diy?.completed || false,
-      },
-      {
-        category: "Technology",
-        slug: "technology",
-        completed: assessments.byType.technology?.completed || false,
-      },
-      {
-        category: "Self-care",
-        slug: "self-care",
-        completed: assessments.byType["self-care"]?.completed || false,
-      },
-      {
-        category: "Communication",
-        slug: "communication",
-        completed: assessments.byType.communication?.completed || false,
-      },
-      {
-        category: "Community",
-        slug: "community",
-        completed: assessments.byType.community?.completed || false,
-      },
-    ],
+    inDepth: available
+      .filter((a) => a.slug !== "initial")
+      .map((a) => ({
+        category: a.category,
+        slug: a.slug,
+        completed: assessments.byType[a.slug]?.completed || false,
+      })),
   };
 
   const total = 1 + status.inDepth.length;
@@ -72,14 +76,7 @@ export default function AssessmentReminder() {
         "Are you sure you want to reset ALL your assessments? This cannot be undone.",
       onConfirm: async () => {
         await wipeAllAssessments(user.id);
-        [
-          "initial",
-          "diy",
-          "technology",
-          "self-care",
-          "communication",
-          "community",
-        ].forEach((type) =>
+        ["initial", ...status.inDepth.map((a) => a.slug)].forEach((type) =>
           dispatch(getAssessment({ assessmentType: type, userId: user.id }))
         );
         setToast(null);
@@ -174,23 +171,7 @@ export default function AssessmentReminder() {
                 <span>{a.category}</span>
                 <div className="flex gap-4 items-center">
                   <button
-                    onClick={() => {
-                      if (
-                        a.completed ||
-                        [
-                          "diy",
-                          "technology",
-                          "self-care",
-                          "communication",
-                          "community",
-                        ].includes(a.slug)
-                      ) {
-                        navigate(`/assessment/${a.slug}`);
-                      } else {
-                        setModalCategory(a.category);
-                        setModalOpen(true);
-                      }
-                    }}
+                    onClick={() => navigate(`/assessment/${a.slug}`)}
                     className="text-sm underline"
                   >
                     {a.completed ? "Review / Update" : "Start"}
@@ -219,24 +200,6 @@ export default function AssessmentReminder() {
           </div>
         </div>
       </div>
-
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-neutral-900 text-white p-6 rounded-xl shadow-lg max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-3">Coming Soon</h2>
-            <p className="text-gray-300 mb-4">
-              The <span className="font-semibold">{modalCategory}</span>{" "}
-              assessment isn’t ready yet.
-            </p>
-            <button
-              onClick={() => setModalOpen(false)}
-              className="w-full px-4 py-2 bg-brand-600 hover:bg-brand-500 rounded text-white font-medium"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
 
       {toast && (
         <Toast

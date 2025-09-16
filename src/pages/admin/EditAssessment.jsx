@@ -16,7 +16,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import SortableItem from "../../components/SortableItem";
-import { Pencil, Trash2, Plus, ChevronRight } from "lucide-react";
+import { Trash2, Plus, ChevronRight, Pencil, Check, X } from "lucide-react";
 import Toast from "../../components/Toast";
 
 const TYPE_TO_CATEGORY = {
@@ -28,8 +28,10 @@ const TYPE_TO_CATEGORY = {
   community: "Community & Contribution",
 };
 
+const PLACEHOLDER = "New question...";
+
 export default function EditAssessment() {
-  const { type, parentId } = useParams();
+  const { type, parentId } = useParams(); // parentId: question id (normal) OR category label (initial)
   const navigate = useNavigate();
 
   const [blocks, setBlocks] = useState([]);
@@ -40,40 +42,114 @@ export default function EditAssessment() {
   const [categoryLabel, setCategoryLabel] = useState(
     TYPE_TO_CATEGORY[type] || type
   );
-
-  // 🔹 Toast state
   const [toast, setToast] = useState(null);
+
+  // category rename state (initial categories view)
+  const [editingCategoryIdx, setEditingCategoryIdx] = useState(null);
+  const [categoryDraft, setCategoryDraft] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
 
-  // Load questions
+  // ---------- helpers (initial-only ops) ----------
+  const deleteInitialCategory = async (category) => {
+    // fetch all questions in this category, then delete them; cascades will remove follow-ups
+    const qs = await apiFetch(
+      `/api/admin/assessment/questions?type=initial&category=${encodeURIComponent(
+        category
+      )}`
+    );
+    await Promise.all(
+      (qs || []).map((q) =>
+        apiFetch(`/api/admin/assessment/questions/${q.id}`, {
+          method: "DELETE",
+        })
+      )
+    );
+  };
+
+  const renameInitialCategory = async (oldCategory, newCategory) => {
+    // Try the server route first; if it 404s, fall back to bulk patch.
+    try {
+      await apiFetch(`/api/admin/assessment/update-category`, {
+        method: "PATCH",
+        body: JSON.stringify({ oldCategory, newCategory }),
+      });
+      return;
+    } catch (err) {
+      // fallback: bulk update each question's category
+      const qs = await apiFetch(
+        `/api/admin/assessment/questions?type=initial&category=${encodeURIComponent(
+          oldCategory
+        )}`
+      );
+      const payload = (qs || []).map((q, idx) => ({
+        id: q.id,
+        text: q.text,
+        category: newCategory,
+        parent_id: null,
+        sort_order: q.sort_order ?? idx,
+      }));
+      if (payload.length) {
+        await apiFetch(`/api/admin/assessment/questions/bulk`, {
+          method: "PATCH",
+          body: JSON.stringify({ questions: payload }),
+        });
+      }
+    }
+  };
+
+  // ---------- load ----------
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        if (parentId) {
+        if (type === "initial" && parentId) {
+          // inside an initial category → load its questions
+          const res = await apiFetch(
+            `/api/admin/assessment/questions?type=initial&category=${encodeURIComponent(
+              parentId
+            )}`
+          );
+          if (!cancelled) {
+            setCategoryLabel(parentId);
+            setBlocks(formatAssessmentQuestions(res));
+          }
+        } else if (type === "initial" && !parentId) {
+          // list categories
+          const res = await apiFetch(
+            `/api/admin/assessment/questions?type=initial`
+          );
+          if (!cancelled) {
+            const byCat = {};
+            for (const q of res) {
+              if (!byCat[q.category]) byCat[q.category] = [];
+              byCat[q.category].push(q);
+            }
+            setBlocks(
+              Object.keys(byCat).map((cat) => ({
+                category: cat,
+                questions: byCat[cat],
+              }))
+            );
+          }
+        } else if (parentId) {
+          // normal follow-ups view
           const [children, parent] = await Promise.all([
             apiFetch(`/api/admin/assessment/questions?parent_id=${parentId}`),
             apiFetch(`/api/admin/assessment/questions/${parentId}`).catch(
               () => null
             ),
           ]);
-
           if (!cancelled) {
             const label = parent?.category || TYPE_TO_CATEGORY[type] || type;
             setCategoryLabel(label);
-            setBlocks([
-              {
-                category: label,
-                title: label,
-                questions: children || [],
-              },
-            ]);
+            setBlocks([{ category: label, questions: children || [] }]);
           }
         } else {
+          // normal top-level
           const res = await apiFetch(
             `/api/admin/assessment/questions?type=${type}`
           );
@@ -94,125 +170,38 @@ export default function EditAssessment() {
     };
   }, [type, parentId]);
 
-  // Reorder
-  const handleReorder = (event, catIndex) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setBlocks((prev) => {
-      const next = [...prev];
-      const cat = next[catIndex];
-      const oldIdx = cat.questions.findIndex((q) => q.id === active.id);
-      const newIdx = cat.questions.findIndex((q) => q.id === over.id);
-      cat.questions = arrayMove(cat.questions, oldIdx, newIdx);
-      return next;
-    });
-    setDirty(true);
-  };
-
-  // Start editing
-  const handleEditStart = (q) => {
-    setEditingId(q.id);
-    setEditingText(q.text || "");
-  };
-
-  // Commit edit
-  const handleEditCommit = (cat) => {
-    const id = editingId;
-    const value = editingText.trim();
-    setEditingId(null);
-    if (!id || !value) return;
+  // ---------- question text edit ----------
+  const commitEditingQuestion = () => {
+    if (!editingId) return;
     setBlocks((prev) =>
-      prev.map((c) =>
-        c.category === cat.category
-          ? {
-              ...c,
-              questions: c.questions.map((q) =>
-                q.id === id ? { ...q, text: value } : q
-              ),
-            }
-          : c
-      )
+      prev.map((c) => ({
+        ...c,
+        questions: c.questions.map((q) =>
+          q.id === editingId
+            ? { ...q, text: editingText.trim() || PLACEHOLDER }
+            : q
+        ),
+      }))
     );
+    setEditingId(null);
+    setEditingText("");
     setDirty(true);
   };
 
-  // Delete with confirm toast
-  const handleDelete = (qId, catIndex) => {
-    setToast({
-      message: "Delete this question (and any follow-ups)?",
-      onConfirm: async () => {
-        try {
-          await apiFetch(`/api/admin/assessment/questions/${qId}`, {
-            method: "DELETE",
-          });
-          setBlocks((prev) =>
-            prev.map((cat, idx) =>
-              idx === catIndex
-                ? {
-                    ...cat,
-                    questions: cat.questions.filter((q) => q.id !== qId),
-                  }
-                : cat
-            )
-          );
-          setToast({
-            message: "Question deleted ✅",
-            onConfirm: () => setToast(null),
-            onCancel: () => setToast(null),
-          });
-        } catch (e) {
-          console.error("Failed to delete question", e);
-          setToast({
-            message: "Failed to delete question ❌",
-            onConfirm: () => setToast(null),
-            onCancel: () => setToast(null),
-          });
-        }
-      },
-      onCancel: () => setToast(null),
-    });
-  };
-
-  // Add question
-  const handleAddQuestion = async (catIndex) => {
-    try {
-      const cat = blocks[catIndex];
-      const created = await apiFetch(`/api/admin/assessment/questions`, {
-        method: "POST",
-        body: JSON.stringify({
-          assessment_type: type,
-          category: cat.category || categoryLabel,
-          text: "New question...",
-          parent_id: parentId || null,
-        }),
-      });
-      setBlocks((prev) =>
-        prev.map((c, idx) =>
-          idx === catIndex
-            ? { ...c, questions: [...c.questions, { ...created }] }
-            : c
-        )
-      );
-      setEditingId(created.id);
-      setEditingText(created.text);
-    } catch (e) {
-      console.error("Failed to add question", e);
-      setToast({
-        message: "Could not add question ❌",
-        onConfirm: () => setToast(null),
-        onCancel: () => setToast(null),
-      });
-    }
-  };
-
-  // Save all
+  // ---------- save questions ----------
   const handleSaveAll = async () => {
+    commitEditingQuestion();
+
+    // In initial *category* view keep parent_id null (not the category name)
+    const computedParentId =
+      type === "initial" ? null : parentId ? parentId : null;
+
     const payload = blocks.flatMap((cat) =>
       cat.questions.map((q, idx) => ({
         id: q.id,
-        text: q.text,
+        text: q.text === PLACEHOLDER ? "" : q.text,
         category: cat.category || categoryLabel,
-        parent_id: parentId || null,
+        parent_id: computedParentId,
         sort_order: idx,
       }))
     );
@@ -223,19 +212,158 @@ export default function EditAssessment() {
         body: JSON.stringify({ questions: payload }),
       });
       setDirty(false);
-      setToast({
-        message: "All changes saved ✅",
-        onConfirm: () => setToast(null),
-        onCancel: () => setToast(null),
-      });
     } catch (e) {
       console.error("Bulk save failed", e);
-      setToast({
-        message: "Failed to save changes ❌",
-        onConfirm: () => setToast(null),
-        onCancel: () => setToast(null),
-      });
     }
+  };
+
+  // ---------- navigation ----------
+  const handleDrill = async (qOrCat) => {
+    commitEditingQuestion();
+    if (dirty) await handleSaveAll();
+    if (type === "initial" && !parentId) {
+      navigate(
+        `/admin/assessments/initial/${encodeURIComponent(qOrCat.category)}`
+      );
+    } else {
+      navigate(`/admin/assessments/${type}/${qOrCat.id}`);
+    }
+  };
+
+  const handleBack = async () => {
+    commitEditingQuestion();
+    if (dirty && !(type === "initial" && !parentId)) {
+      await handleSaveAll();
+    }
+    if (type === "initial" && parentId) {
+      navigate(`/admin/assessments/initial`);
+    } else {
+      navigate(`/admin/assessments/${type}`);
+    }
+  };
+
+  // ---------- add ----------
+  const handleAddCategory = async () => {
+    try {
+      const created = await apiFetch(`/api/admin/assessment/questions`, {
+        method: "POST",
+        body: JSON.stringify({
+          assessment_type: "initial",
+          category: "New Category",
+          text: PLACEHOLDER,
+          parent_id: null,
+        }),
+      });
+      setBlocks((prev) => {
+        const next = [
+          ...prev,
+          { category: created.category, questions: [created] },
+        ];
+        setEditingCategoryIdx(next.length - 1);
+        setCategoryDraft(created.category);
+        return next;
+      });
+    } catch (e) {
+      console.error("Failed to add category", e);
+    }
+  };
+
+  const handleAddQuestion = async (catIndex) => {
+    commitEditingQuestion();
+    if (dirty) await handleSaveAll();
+    try {
+      const cat = blocks[catIndex];
+      const created = await apiFetch(`/api/admin/assessment/questions`, {
+        method: "POST",
+        body: JSON.stringify({
+          assessment_type: type,
+          category: cat.category || categoryLabel,
+          text: PLACEHOLDER,
+          parent_id: parentId || null,
+        }),
+      });
+      setBlocks((prev) =>
+        prev.map((c, idx) =>
+          idx === catIndex ? { ...c, questions: [...c.questions, created] } : c
+        )
+      );
+      setEditingId(created.id);
+      setEditingText("");
+    } catch (e) {
+      console.error("Failed to add question", e);
+    }
+  };
+
+  // ---------- category rename controls ----------
+  const startEditCategory = (idx) => {
+    setEditingCategoryIdx(idx);
+    setCategoryDraft(blocks[idx].category);
+  };
+  const cancelEditCategory = () => {
+    setEditingCategoryIdx(null);
+    setCategoryDraft("");
+  };
+  const saveEditCategory = async () => {
+    const idx = editingCategoryIdx;
+    if (idx == null) return;
+    const oldCategory = blocks[idx].category;
+    const newCategory = (categoryDraft || "").trim();
+    if (!newCategory || newCategory === oldCategory) {
+      cancelEditCategory();
+      return;
+    }
+    try {
+      await renameInitialCategory(oldCategory, newCategory);
+      setBlocks((prev) =>
+        prev.map((c, i) => (i === idx ? { ...c, category: newCategory } : c))
+      );
+    } catch (e) {
+      console.error("Failed to update category", e);
+    } finally {
+      cancelEditCategory();
+    }
+  };
+
+  // ---------- delete ----------
+  const handleDelete = (idOrCategory, catIndex) => {
+    const msg =
+      type === "initial" && !parentId
+        ? `Delete entire category "${idOrCategory}" (and all its questions)?`
+        : "Delete this question (and any follow-ups)?";
+
+    setToast({
+      message: msg,
+      onConfirm: async () => {
+        try {
+          if (type === "initial" && !parentId) {
+            await deleteInitialCategory(idOrCategory);
+            setBlocks((prev) =>
+              prev.filter((c) => c.category !== idOrCategory)
+            );
+          } else {
+            await apiFetch(`/api/admin/assessment/questions/${idOrCategory}`, {
+              method: "DELETE",
+            });
+            setBlocks((prev) =>
+              prev.map((cat, idx) =>
+                idx === catIndex
+                  ? {
+                      ...cat,
+                      questions: cat.questions.filter(
+                        (q) => q.id !== idOrCategory
+                      ),
+                    }
+                  : cat
+              )
+            );
+          }
+          setToast(null);
+        } catch (e) {
+          console.error("Failed to delete", e);
+        }
+      },
+      onCancel: () => setToast(null),
+    });
   };
 
   if (loading) return <p className="text-white">Loading assessment...</p>;
@@ -244,131 +372,203 @@ export default function EditAssessment() {
     <div className="text-white p-6 max-w-4xl mx-auto space-y-6 bg-neutral-900 rounded-lg shadow">
       {parentId && (
         <button
-          onClick={() => navigate(`/admin/assessments/${type}`)}
+          onClick={handleBack}
           className="mb-4 px-3 py-1 bg-neutral-700 hover:bg-neutral-600 rounded text-sm"
         >
-          ← Back to {categoryLabel}
+          ← Back to {type === "initial" ? "Initial Assessment" : categoryLabel}
         </button>
       )}
 
       <h1 className="text-2xl font-bold">
         {parentId
-          ? "Editing Follow-Ups"
+          ? "Editing Questions"
+          : type === "initial"
+          ? "Editing Initial Assessment Categories"
           : `Editing ${TYPE_TO_CATEGORY[type] || type} Assessment`}
       </h1>
 
       {blocks.map((cat, catIndex) => (
         <div key={`${cat.category}-${catIndex}`} className="space-y-4">
-          {!parentId && (
+          {/* no duplicated titles for initial category list */}
+          {!(type === "initial" && !parentId) && !parentId && (
             <h2 className="text-lg font-semibold">
-              {cat.title || categoryLabel}
+              {cat.category || categoryLabel}
             </h2>
           )}
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={(e) => handleReorder(e, catIndex)}
-          >
-            <SortableContext
-              items={cat.questions.map((q) => q.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <ul className="space-y-3">
-                {cat.questions.map((q) => (
-                  <SortableItem key={q.id} id={q.id}>
-                    <div className="bg-neutral-800 rounded p-3 shadow-sm">
-                      <div className="flex justify-between items-center">
-                        {editingId === q.id ? (
-                          <textarea
-                            className="flex-1 px-2 py-1 bg-white text-black rounded resize-none overflow-hidden"
-                            value={editingText}
-                            onChange={(e) => {
-                              setEditingText(e.target.value);
-                              e.target.style.height = "auto";
-                              e.target.style.height = `${e.target.scrollHeight}px`;
-                            }}
-                            onBlur={() => handleEditCommit(cat)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleEditCommit(cat);
-                              }
-                              if (e.key === "Escape") setEditingId(null);
-                            }}
-                            autoFocus
-                            rows={1}
-                          />
-                        ) : (
-                          <span
-                            className="flex-1 cursor-text"
-                            onClick={() => handleEditStart(q)}
-                          >
-                            {q.text || (
-                              <span className="text-gray-400">
-                                New question...
-                              </span>
-                            )}
-                          </span>
-                        )}
+          {type === "initial" && !parentId ? (
+            <div className="bg-neutral-800 rounded p-3 shadow-sm flex justify-between items-center">
+              {editingCategoryIdx === catIndex ? (
+                <div className="flex-1 flex items-center gap-2">
+                  <input
+                    className="flex-1 px-2 py-1 bg-white text-black rounded"
+                    value={categoryDraft}
+                    onChange={(e) => setCategoryDraft(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    onClick={saveEditCategory}
+                    className="p-1 hover:bg-neutral-700 rounded"
+                    title="Save"
+                  >
+                    <Check size={18} />
+                  </button>
+                  <button
+                    onClick={cancelEditCategory}
+                    className="p-1 hover:bg-neutral-700 rounded"
+                    title="Cancel"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : (
+                <span
+                  className="flex-1 cursor-text"
+                  onClick={() => startEditCategory(catIndex)}
+                  title="Click to rename"
+                >
+                  {cat.category}
+                </span>
+              )}
 
-                        <div className="flex items-center gap-2 ml-2">
-                          {!parentId && (
-                            <button
-                              onClick={() =>
-                                navigate(`/admin/assessments/${type}/${q.id}`)
-                              }
-                              className="p-1 hover:bg-neutral-700 rounded"
+              <div className="flex gap-2 ml-2">
+                <button
+                  onClick={() => handleDrill(cat)}
+                  className="p-1 hover:bg-neutral-700 rounded"
+                  title="Edit questions in this category"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <button
+                  onClick={() => handleDelete(cat.category, catIndex)}
+                  className="p-1 hover:bg-red-600 rounded"
+                  title="Delete category"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(e) => {
+                const { active, over } = e;
+                if (!over || active.id === over.id) return;
+                setBlocks((prev) => {
+                  const next = [...prev];
+                  const c = next[catIndex];
+                  const oldIdx = c.questions.findIndex(
+                    (q) => q.id === active.id
+                  );
+                  const newIdx = c.questions.findIndex((q) => q.id === over.id);
+                  c.questions = arrayMove(c.questions, oldIdx, newIdx);
+                  return next;
+                });
+                setDirty(true);
+              }}
+            >
+              <SortableContext
+                items={cat.questions.map((q) => q.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="space-y-3">
+                  {cat.questions.map((q) => (
+                    <SortableItem key={q.id} id={q.id}>
+                      <div className="bg-neutral-800 rounded p-3 shadow-sm">
+                        <div className="flex justify-between items-center">
+                          {editingId === q.id ? (
+                            <textarea
+                              className="flex-1 px-2 py-1 bg-white text-black rounded resize-none overflow-hidden"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              onBlur={commitEditingQuestion}
+                              autoFocus
+                              rows={1}
+                            />
+                          ) : (
+                            <span
+                              className="flex-1 cursor-text"
+                              onClick={() => {
+                                setEditingId(q.id);
+                                setEditingText(
+                                  q.text === PLACEHOLDER ? "" : q.text || ""
+                                );
+                              }}
                             >
-                              <ChevronRight size={18} />
-                            </button>
+                              {q.text || (
+                                <span className="text-gray-400">
+                                  {PLACEHOLDER}
+                                </span>
+                              )}
+                            </span>
                           )}
-                          <button
-                            onClick={() => handleEditStart(q)}
-                            className="p-1 hover:bg-neutral-700 rounded"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(q.id, catIndex)}
-                            className="p-1 hover:bg-red-600 rounded"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex items-center gap-2 ml-2">
+                            {!parentId && (
+                              <button
+                                onClick={() => handleDrill(q)}
+                                className="p-1 hover:bg-neutral-700 rounded"
+                                title="Edit follow-ups"
+                              >
+                                <ChevronRight size={18} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(q.id, catIndex)}
+                              className="p-1 hover:bg-red-600 rounded"
+                              title="Delete question"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </SortableItem>
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
+                    </SortableItem>
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
 
-          <div className="flex items-center gap-3 mt-4">
-            <button
-              onClick={() => handleAddQuestion(catIndex)}
-              className="px-3 py-1 bg-green-600 rounded hover:bg-green-500 text-sm"
-            >
-              <Plus size={14} className="inline mr-1" />
-              Add Question
-            </button>
-          </div>
-
-          <div className="mt-4">
-            <button
-              disabled={!dirty}
-              onClick={handleSaveAll}
-              className={`px-4 py-2 rounded text-white font-semibold ${
-                dirty
-                  ? "bg-brand-600 hover:bg-brand-500"
-                  : "bg-gray-600 cursor-not-allowed"
-              }`}
-            >
-              Save All Changes
-            </button>
-          </div>
+          {type !== "initial" && (
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={() => handleAddQuestion(catIndex)}
+                className="px-3 py-1 bg-green-600 rounded hover:bg-green-500 text-sm"
+              >
+                <Plus size={14} className="inline mr-1" />
+                Add Question
+              </button>
+            </div>
+          )}
         </div>
       ))}
+
+      {type === "initial" && !parentId && (
+        <button
+          onClick={handleAddCategory}
+          className="px-3 py-1 bg-green-600 rounded hover:bg-green-500 text-sm mt-4"
+        >
+          <Plus size={14} className="inline mr-1" />
+          Add Category
+        </button>
+      )}
+
+      {type !== "initial" && (
+        <div className="mt-4">
+          <button
+            disabled={!dirty}
+            onClick={handleSaveAll}
+            className={`px-4 py-2 rounded text-white font-semibold ${
+              dirty
+                ? "bg-brand-600 hover:bg-brand-500"
+                : "bg-gray-600 cursor-not-allowed"
+            }`}
+          >
+            Save All Changes
+          </button>
+        </div>
+      )}
 
       {toast && (
         <Toast
