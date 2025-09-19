@@ -18,11 +18,12 @@ export default function AssessmentReminder() {
   const assessments = useSelector((state) => state.assessments);
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔹 Fetch available assessment types/categories dynamically
+  // 🔹 Fetch available assessment categories (public route)
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiFetch(`/api/admin/assessment/categories`);
+        const res = await apiFetch(`/api/assessment/categories`);
+        // Group by type to avoid duplicates
         const byType = new Map();
         for (const r of res) {
           if (!byType.has(r.assessment_type)) {
@@ -41,7 +42,7 @@ export default function AssessmentReminder() {
     })();
   }, []);
 
-  // 🔹 Build status from store + available types
+  // 🔹 Build status from store + available categories
   const status = {
     initial: assessments.byType.initial?.completed || false,
     inDepth: available

@@ -7,6 +7,11 @@ import {
   selectAssessmentStatus,
   getAssessment,
 } from "../redux/assessmentSlice";
+import {
+  selectUserEvents,
+  fetchEvents,
+  fetchUserEvents,
+} from "../redux/eventsSlice";
 import { setUser, setProfileCompletion } from "../redux/userSlice";
 import AssessmentReminder from "../components/AssessmentReminder";
 import ProfileStats from "../components/ProfileStats";
@@ -14,6 +19,7 @@ import Awards from "../components/Awards";
 import ProfileCard from "../components/ProfileCard";
 import FriendsList from "../components/FriendsList";
 import MatchesList from "../components/MatchesList";
+import UserEvents from "../components/UserEvents";
 import { calculateProfileCompletion } from "../utils/profileCompletion";
 
 export default function Dashboard() {
@@ -21,10 +27,10 @@ export default function Dashboard() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.current);
   const assessmentStatus = useSelector(selectAssessmentStatus);
+  const userEvents = useSelector(selectUserEvents);
 
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch latest user + all assessments when we have a user.id
   useEffect(() => {
     async function refreshUser() {
       if (!user?.id) return;
@@ -44,6 +50,10 @@ export default function Dashboard() {
         types.forEach((type) =>
           dispatch(getAssessment({ assessmentType: type, userId: latest.id }))
         );
+
+        // fetch events
+        dispatch(fetchEvents());
+        dispatch(fetchUserEvents(user.id));
       } catch (err) {
         console.error("Failed to refresh user", err);
       } finally {
@@ -53,7 +63,6 @@ export default function Dashboard() {
     refreshUser();
   }, [user?.id, dispatch]);
 
-  // 🔹 Update profileCompletion in Redux
   useEffect(() => {
     if (user) {
       const completion = calculateProfileCompletion(user, assessmentStatus);
@@ -61,7 +70,6 @@ export default function Dashboard() {
     }
   }, [user, assessmentStatus, dispatch]);
 
-  // 🔹 Redirect if user hasn’t done initial assessment
   useEffect(() => {
     if (!loading && user && !user.has_completed_assessment) {
       navigate("/assessment/initial");
@@ -77,6 +85,7 @@ export default function Dashboard() {
       <ProfileCard />
       <ProfileStats />
       <Awards />
+      <UserEvents events={userEvents} />
       <FriendsList />
       <MatchesList />
     </div>

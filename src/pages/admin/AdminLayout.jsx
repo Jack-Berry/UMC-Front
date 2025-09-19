@@ -6,7 +6,7 @@ export default function AdminLayout() {
   const navItems = [
     { to: "/admin", label: "Assessments" },
     { to: "/admin/news", label: "News (coming soon)" },
-    { to: "/admin/events", label: "Events (coming soon)" },
+    { to: "/admin/events", label: "Events" },
   ];
 
   return (
