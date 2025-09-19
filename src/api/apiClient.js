@@ -9,9 +9,9 @@ async function apiFetch(endpoint, options = {}) {
   let body = options.body;
 
   // Detect FormData automatically
-  const isFormData = body instanceof FormData;
-
-  if (!isFormData) {
+  if (body instanceof FormData) {
+    // Let the browser set Content-Type for multipart/form-data
+  } else {
     headers["Content-Type"] = "application/json";
     if (body && typeof body !== "string") {
       body = JSON.stringify(body);
@@ -20,17 +20,15 @@ async function apiFetch(endpoint, options = {}) {
 
   if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
 
-  // First request
   let res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
     body,
+    credentials: "include",
   });
 
-  // If access token expired, try refresh
   if (res.status === 401 && refreshToken) {
     console.log("⏳ Token expired, trying refresh...");
-
     const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -54,13 +52,11 @@ async function apiFetch(endpoint, options = {}) {
     }
   }
 
-  // Handle non-2xx responses
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(errorText || "API request failed");
   }
 
-  // Try to parse JSON, fall back to text
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     return res.json();

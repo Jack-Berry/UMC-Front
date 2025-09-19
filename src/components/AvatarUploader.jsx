@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { updateAvatar } from "../api/users";
 
 export default function AvatarUploader({ userId, onUploaded, onClose }) {
   const inputRef = useRef(null);
@@ -11,19 +11,8 @@ export default function AvatarUploader({ userId, onUploaded, onClose }) {
     if (!file) return;
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${userId}-${Date.now()}.${ext}`;
-      console.log("Supabase URL in client:", supabase.supabaseUrl);
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      onUploaded?.(data.publicUrl);
-
+      const data = await updateAvatar(userId, file);
+      onUploaded?.(data.user.avatar_url);
       onClose?.();
     } catch (e) {
       console.error(e);

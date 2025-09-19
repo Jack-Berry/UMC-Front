@@ -28,9 +28,7 @@ export default function EventsList() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-brand-400 mb-6">
-        Upcoming Events
-      </h2>
+      <h2 className="text-xl font-bold mb-2">Upcoming Events</h2>
       <div className="grid gap-6 md:grid-cols-2">
         {events.map((event) => (
           <EventCard
