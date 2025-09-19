@@ -20,6 +20,7 @@ import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import AdminAssessments from "./pages/admin/AdminAssessments.jsx";
 import EditAssessment from "./pages/admin/EditAssessment.jsx";
 import AdminEvents from "./pages/admin/AdminEvents.jsx";
+import AdminNews from "./pages/admin/AdminNews.jsx"; // ✅ Added
 import Home from "./pages/Home.jsx";
 
 /* 🔑 Attach API key directly to gmpx-loader */
@@ -75,8 +76,8 @@ function AuthenticatedApp() {
             path="assessments/:type/:parentId"
             element={<EditAssessment />}
           />
-          <Route path="events" element={<AdminEvents />} />{" "}
-          {/* ✅ New admin events page */}
+          <Route path="events" element={<AdminEvents />} />
+          <Route path="news" element={<AdminNews />} /> {/* ✅ Added */}
         </Route>
       </Route>
     </Routes>

@@ -5,19 +5,29 @@ async function apiFetch(endpoint, options = {}) {
   let accessToken = localStorage.getItem("accessToken");
   let refreshToken = localStorage.getItem("refreshToken");
 
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
+  let headers = { ...(options.headers || {}) };
+  let body = options.body;
+
+  // Detect FormData automatically
+  const isFormData = body instanceof FormData;
+
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+    if (body && typeof body !== "string") {
+      body = JSON.stringify(body);
+    }
+  }
+
   if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
 
-  // First attempt
+  // First request
   let res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
+    body,
   });
 
-  // If access token expired
+  // If access token expired, try refresh
   if (res.status === 401 && refreshToken) {
     console.log("⏳ Token expired, trying refresh...");
 
@@ -31,13 +41,11 @@ async function apiFetch(endpoint, options = {}) {
       const { accessToken: newAccess, refreshToken: newRefresh } =
         await refreshRes.json();
 
-      // Save tokens
       localStorage.setItem("accessToken", newAccess);
       localStorage.setItem("refreshToken", newRefresh);
 
-      // Retry original request
       headers["Authorization"] = `Bearer ${newAccess}`;
-      res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+      res = await fetch(`${API_URL}${endpoint}`, { ...options, headers, body });
     } else {
       console.warn("❌ Refresh failed, logging out.");
       localStorage.removeItem("accessToken");
@@ -46,12 +54,18 @@ async function apiFetch(endpoint, options = {}) {
     }
   }
 
+  // Handle non-2xx responses
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(errorText || "API request failed");
   }
 
-  return res.json();
+  // Try to parse JSON, fall back to text
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return res.json();
+  }
+  return res.text();
 }
 
 export default apiFetch;

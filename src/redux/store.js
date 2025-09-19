@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./userSlice";
 import assessmentReducer from "./assessmentSlice";
 import eventsReducer from "./eventsSlice";
+import newsReducer from "./newsSlice";
 import { localStorageSync } from "./middleware/localStorageSync";
 
 export const store = configureStore({
@@ -10,6 +11,7 @@ export const store = configureStore({
     user: userReducer,
     assessments: assessmentReducer,
     events: eventsReducer,
+    news: newsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

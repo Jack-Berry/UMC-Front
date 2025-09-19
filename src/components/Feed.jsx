@@ -1,77 +1,77 @@
 // src/components/Feed.jsx
-import { useState } from "react";
-
-const initialPosts = [
-  {
-    id: 1,
-    author: "Dave",
-    content: "Just fixed my leaky tap! Feeling like a DIY king 🛠️",
-    timestamp: "2h ago",
-  },
-  {
-    id: 2,
-    author: "Sam",
-    content: "Booked onto the community BBQ this weekend 🍔🔥",
-    timestamp: "5h ago",
-  },
-  {
-    id: 3,
-    author: "Alex",
-    content: "Anyone want to skill-swap tech help for gardening tips? 🌱💻",
-    timestamp: "1d ago",
-  },
-];
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { getNews } from "../redux/newsSlice";
+import { Link } from "react-router-dom";
 
 export default function Feed() {
-  const [posts, setPosts] = useState(initialPosts);
-  const [newPost, setNewPost] = useState("");
+  const dispatch = useDispatch();
+  const { list: news, loading } = useSelector((s) => s.news);
 
-  const handlePost = () => {
-    if (!newPost.trim()) return;
-    const post = {
-      id: Date.now(),
-      author: "You", // 🔹 later: current user
-      content: newPost,
-      timestamp: "just now",
-    };
-    setPosts([post, ...posts]);
-    setNewPost("");
-  };
+  useEffect(() => {
+    dispatch(getNews());
+  }, [dispatch]);
 
   return (
-    <div className="bg-neutral-800 mt-10 p-6 rounded-lg shadow-md space-y-6">
-      <h2 className="text-xl font-bold">Community Feed</h2>
+    <div className="mt-8">
+      <h2 className="text-xl font-bold mb-4">Latest News</h2>
 
-      {/* New Post box */}
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newPost}
-          onChange={(e) => setNewPost(e.target.value)}
-          placeholder="Share something..."
-          className="flex-1 min-w-0 px-3 py-2 rounded bg-neutral-700 text-white placeholder-gray-400"
-        />
-        <button
-          onClick={handlePost}
-          className="flex-shrink-0 bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded text-white font-medium"
-        >
-          Post
-        </button>
-      </div>
+      {loading ? (
+        <p className="text-gray-400">Loading news...</p>
+      ) : news.length ? (
+        <ul className="space-y-6">
+          {news.map((post) => (
+            <li
+              key={post.id}
+              className="bg-slate-800 rounded-lg p-4 shadow hover:shadow-lg transition"
+            >
+              <h3 className="text-lg font-semibold">
+                {post.type === "external" ? (
+                  <a
+                    href={post.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    {post.title}
+                  </a>
+                ) : (
+                  post.title
+                )}
+              </h3>
 
-      {/* Posts */}
-      {posts.map((post) => (
-        <div
-          key={post.id}
-          className="bg-gray-700 p-4 rounded-md hover:bg-gray-600 transition"
-        >
-          <div className="flex justify-between text-sm text-gray-400 mb-2">
-            <span className="font-semibold text-white">{post.author}</span>
-            <span>{post.timestamp}</span>
-          </div>
-          <p className="text-gray-200">{post.content}</p>
-        </div>
-      ))}
+              {/* Summary or Content */}
+              {post.summary && (
+                <p className="text-gray-300 mt-2 text-sm">{post.summary}</p>
+              )}
+              {post.type === "native" && post.content && (
+                <p className="text-gray-300 mt-2 text-sm">{post.content}</p>
+              )}
+
+              {/* Image */}
+              {post.image_url && (
+                <img
+                  src={post.image_url}
+                  alt=""
+                  className="mt-3 rounded max-h-48 object-cover"
+                />
+              )}
+
+              {/* Meta */}
+              <div className="text-xs text-gray-500 mt-3">
+                Posted on {new Date(post.created_at).toLocaleDateString()}
+                {post.pinned && (
+                  <span className="ml-2 bg-yellow-600 text-white px-2 py-0.5 rounded text-xs">
+                    📌 Pinned
+                  </span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-400">No news yet.</p>
+      )}
     </div>
   );
 }
