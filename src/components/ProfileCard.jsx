@@ -5,6 +5,7 @@ import { setUser } from "../redux/userSlice";
 import { updateAvatar, updateProfile } from "../api/users";
 import { Camera, Upload, Edit3 } from "lucide-react";
 import LocationAutocomplete from "./LocationAutocomplete";
+import { fetchUserById } from "../api/auth";
 
 export default function ProfileCard() {
   const dispatch = useDispatch();
@@ -57,8 +58,11 @@ export default function ProfileCard() {
     if (!file) return;
     try {
       setUploading(true);
-      const data = await updateAvatar(user.id, file);
-      dispatch(setUser({ ...user, avatar_url: data.user.avatar_url }));
+      await updateAvatar(user.id, file);
+
+      // 🔹 Fetch fresh user object from backend
+      const latest = await fetchUserById(user.id);
+      dispatch(setUser(latest));
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {

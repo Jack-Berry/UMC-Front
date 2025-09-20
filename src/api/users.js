@@ -9,7 +9,6 @@ export const updateAvatar = (userId, file) => {
   return apiFetch(`/api/users/${userId}/avatar`, {
     method: "PUT",
     body: formData,
-    raw: true,
   });
 };
 
