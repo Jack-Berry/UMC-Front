@@ -1,11 +1,10 @@
 // ProfileCard.jsx
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "../redux/userSlice";
-import { updateProfile } from "../api/users";
-import { Edit3 } from "lucide-react";
+import { updateAvatar, updateProfile } from "../api/users";
+import { Camera, Upload, Edit3 } from "lucide-react";
 import LocationAutocomplete from "./LocationAutocomplete";
-import AvatarUploader from "./AvatarUploader";
 import { fetchUserById } from "../api/auth";
 
 export default function ProfileCard() {
@@ -23,9 +22,12 @@ export default function ProfileCard() {
   const [showLocation, setShowLocation] = useState(
     user?.show_location || false
   );
-  const [saving, setSaving] = useState(false);
-  const [showUploader, setShowUploader] = useState(false);
 
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showMobileOptions, setShowMobileOptions] = useState(false);
+
+  const fileInputRef = useRef(null);
   const initials = (user?.name || "?").slice(0, 1);
 
   const avatarUrl = user?.avatar_url || null;
@@ -53,8 +55,48 @@ export default function ProfileCard() {
     }
   }
 
+  async function uploadAvatarHandler(file) {
+    if (!file) return;
+    try {
+      setUploading(true);
+      await updateAvatar(user.id, file);
+      const latest = await fetchUserById(user.id);
+      dispatch(setUser(latest));
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploading(false);
+      setShowMobileOptions(false);
+    }
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files[0];
+    if (file) uploadAvatarHandler(file);
+  }
+
+  function triggerFilePicker({ camera = false } = {}) {
+    if (fileInputRef.current) {
+      if (camera) {
+        fileInputRef.current.setAttribute("capture", "user");
+      } else {
+        fileInputRef.current.removeAttribute("capture");
+      }
+      fileInputRef.current.click();
+    }
+  }
+
   return (
     <div className="relative bg-neutral-800 p-6 rounded-lg shadow-md space-y-6">
+      {/* Hidden input */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleFileChange}
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
         <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -71,12 +113,25 @@ export default function ProfileCard() {
             )}
 
             {edit && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 p-2">
+                {/* Desktop: file picker directly */}
                 <button
-                  onClick={() => setShowUploader(true)}
-                  className="px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm rounded-md transition"
+                  onClick={() => triggerFilePicker()}
+                  className="hidden sm:flex items-center justify-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white text-sm px-3 py-2 rounded-md transition"
+                  disabled={uploading}
                 >
-                  Change Avatar
+                  <Upload size={16} />
+                  {uploading ? "..." : "Upload"}
+                </button>
+
+                {/* Mobile: show options overlay */}
+                <button
+                  onClick={() => setShowMobileOptions(true)}
+                  className="sm:hidden flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm px-3 py-2 rounded-md transition"
+                  disabled={uploading}
+                >
+                  <Upload size={16} />
+                  {uploading ? "..." : "Change"}
                 </button>
               </div>
             )}
@@ -97,7 +152,7 @@ export default function ProfileCard() {
                 <p className="text-gray-400 text-sm">Member since 2025</p>
                 {user?.location && (
                   <p className="text-gray-300 text-sm">
-                    {user?.show_location ? user.location : "📍 Hidden"}
+                    {user?.show_location ? user.location : "Hidden"}
                   </p>
                 )}
               </>
@@ -170,7 +225,7 @@ export default function ProfileCard() {
               />
             ) : (
               <p className="text-white font-medium">
-                {user?.useful_at || "⚒️ Not set yet"}
+                {user?.useful_at || "Not set yet"}
               </p>
             )}
           </div>
@@ -186,12 +241,12 @@ export default function ProfileCard() {
               />
             ) : (
               <p className="text-white font-medium">
-                {user?.useless_at || "🤷 Not set yet"}
+                {user?.useless_at || "Not set yet"}
               </p>
             )}
           </div>
 
-          {/* Location field with autocomplete */}
+          {/* Location field */}
           {edit ? (
             <div className="bg-gray-700 p-3 rounded sm:col-span-2">
               <p className="text-sm text-gray-300 mb-2">Location:</p>
@@ -236,15 +291,32 @@ export default function ProfileCard() {
         </div>
       </div>
 
-      {/* 🔹 AvatarUploader Modal */}
-      {showUploader && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
-          <div className="bg-neutral-800 rounded-xl shadow-lg p-4 max-w-sm w-full">
-            <AvatarUploader
-              userId={user.id}
-              onClose={() => setShowUploader(false)}
-            />
-          </div>
+      {/* Mobile option overlay */}
+      {showMobileOptions && (
+        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3 rounded-lg">
+          <button
+            onClick={() => triggerFilePicker({ camera: true })}
+            className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded w-40"
+            disabled={uploading}
+          >
+            <Camera size={16} />
+            {uploading ? "..." : "Camera"}
+          </button>
+          <button
+            onClick={() => triggerFilePicker({ camera: false })}
+            className="flex items-center justify-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded w-40"
+            disabled={uploading}
+          >
+            <Upload size={16} />
+            {uploading ? "..." : "Upload"}
+          </button>
+          <button
+            onClick={() => setShowMobileOptions(false)}
+            className="text-gray-300 text-sm underline mt-2"
+            disabled={uploading}
+          >
+            Cancel
+          </button>
         </div>
       )}
     </div>
