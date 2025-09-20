@@ -20,7 +20,8 @@ import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import AdminAssessments from "./pages/admin/AdminAssessments.jsx";
 import EditAssessment from "./pages/admin/EditAssessment.jsx";
 import AdminEvents from "./pages/admin/AdminEvents.jsx";
-import AdminNews from "./pages/admin/AdminNews.jsx"; // ✅ Added
+import AdminNews from "./pages/admin/AdminNews.jsx";
+import Messages from "./pages/Messages.jsx";
 import Home from "./pages/Home.jsx";
 
 /* 🔑 Attach API key directly to gmpx-loader */
@@ -57,6 +58,14 @@ function AuthenticatedApp() {
           element={
             <ProtectedRoute>
               <AssessmentFlow />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="messages"
+          element={
+            <ProtectedRoute>
+              <Messages />
             </ProtectedRoute>
           }
         />

@@ -4,7 +4,8 @@ import userReducer from "./userSlice";
 import assessmentReducer from "./assessmentSlice";
 import eventsReducer from "./eventsSlice";
 import newsReducer from "./newsSlice";
-import friendsReducer from "./friendsSlice"; // ✅ new
+import friendsReducer from "./friendsSlice";
+import messagesReducer from "./messagesSlice";
 import { localStorageSync } from "./middleware/localStorageSync";
 
 export const store = configureStore({
@@ -13,7 +14,8 @@ export const store = configureStore({
     assessments: assessmentReducer,
     events: eventsReducer,
     news: newsReducer,
-    friends: friendsReducer, // ✅ add here
+    friends: friendsReducer,
+    messages: messagesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

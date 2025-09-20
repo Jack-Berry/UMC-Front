@@ -52,6 +52,15 @@ export default function Navbar() {
             >
               Dashboard
             </Link>
+
+            {/* 🔹 Messages link */}
+            <Link
+              to="/messages"
+              className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-md text-sm font-medium"
+            >
+              Messages
+            </Link>
+
             {user.is_admin && (
               <Link
                 to="/admin"
@@ -105,6 +114,16 @@ export default function Navbar() {
               >
                 Dashboard
               </Link>
+
+              {/* 🔹 Messages link (mobile) */}
+              <Link
+                to="/messages"
+                className="bg-brand-600 hover:bg-brand-500 px-3 py-2 rounded text-sm text-center"
+                onClick={() => setMenuOpen(false)}
+              >
+                Messages
+              </Link>
+
               {user.is_admin && (
                 <Link
                   to="/admin"

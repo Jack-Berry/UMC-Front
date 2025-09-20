@@ -2,7 +2,8 @@
 import React from "react";
 import { useDispatch } from "react-redux";
 import { removeFriend } from "../redux/friendsSlice";
-import { Trash2 } from "lucide-react";
+import { startConversation } from "../redux/messagesSlice";
+import { Trash2, MessageCircle } from "lucide-react";
 
 const DEFAULT_PLACEHOLDER =
   "https://managingbarca.com/wp-content/uploads/2025/06/Pep-Guardiola.jpg";
@@ -16,7 +17,7 @@ export default function UserCard({
   useless, // optional (matches)
   placeholder, // optional custom fallback
   className = "",
-  isFriendCard = false, // 🔹 NEW: only true when used in FriendsList
+  isFriendCard = false,
 }) {
   const dispatch = useDispatch();
   const imgSrc = avatar || placeholder || DEFAULT_PLACEHOLDER;
@@ -35,7 +36,7 @@ export default function UserCard({
         loading="lazy"
       />
 
-      {/* Name + tiny status dot */}
+      {/* Name + status dot */}
       <p className="font-medium text-white flex items-center gap-2">
         {name}
         {online !== undefined && (
@@ -48,40 +49,46 @@ export default function UserCard({
         )}
       </p>
 
-      {/* Small status text (friends) */}
+      {/* Status text */}
       {online !== undefined && (
         <p className={`text-xs ${online ? "text-green-400" : "text-gray-400"}`}>
           {online ? "Online" : "Offline"}
         </p>
       )}
 
-      {/* Skills (matches) */}
+      {/* Skills */}
       {(useful !== undefined || useless !== undefined) && (
         <div className="mt-3 w-full flex flex-col items-center gap-2">
-          <span
-            className="px-2 py-1 rounded-full text-xs font-medium
-                           bg-green-700 text-green-200"
-          >
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-700 text-green-200">
             Useful: {useful || "—"}
           </span>
-          <span
-            className="px-2 py-1 rounded-full text-xs font-medium
-                           bg-red-700 text-red-200"
-          >
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-700 text-red-200">
             Useless: {useless || "—"}
           </span>
         </div>
       )}
 
-      {/* 🔹 Delete Friend Button (only in FriendsList) */}
+      {/* Buttons */}
       {isFriendCard && id && (
-        <button
-          onClick={() => dispatch(removeFriend(id))}
-          className="absolute top-2 right-2 p-1 rounded-full bg-neutral-700 hover:bg-red-600 text-gray-300 hover:text-white transition"
-          title="Remove Friend"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="absolute top-2 right-2 flex gap-2">
+          {/* Start Chat */}
+          <button
+            onClick={() => dispatch(startConversation(id))}
+            className="p-1 rounded-full bg-neutral-700 hover:bg-blue-600 text-gray-300 hover:text-white transition"
+            title="Start Chat"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </button>
+
+          {/* Delete Friend */}
+          <button
+            onClick={() => dispatch(removeFriend(id))}
+            className="p-1 rounded-full bg-neutral-700 hover:bg-red-600 text-gray-300 hover:text-white transition"
+            title="Remove Friend"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       )}
     </div>
   );
