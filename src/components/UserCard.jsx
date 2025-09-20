@@ -1,10 +1,14 @@
 // src/components/UserCard.jsx
 import React from "react";
+import { useDispatch } from "react-redux";
+import { removeFriend } from "../redux/friendsSlice";
+import { Trash2 } from "lucide-react";
 
 const DEFAULT_PLACEHOLDER =
   "https://managingbarca.com/wp-content/uploads/2025/06/Pep-Guardiola.jpg";
 
 export default function UserCard({
+  id,
   name,
   avatar,
   online, // optional (friends)
@@ -12,14 +16,16 @@ export default function UserCard({
   useless, // optional (matches)
   placeholder, // optional custom fallback
   className = "",
+  isFriendCard = false, // 🔹 NEW: only true when used in FriendsList
 }) {
+  const dispatch = useDispatch();
   const imgSrc = avatar || placeholder || DEFAULT_PLACEHOLDER;
 
   return (
     <div
       className={`bg-gray-700 rounded-lg p-4 flex flex-col items-center shadow
                   hover:bg-gray-600 hover:scale-105 hover:shadow-lg
-                  transition-transform duration-200 min-h-[200px] ${className}`}
+                  transition-transform duration-200 min-h-[200px] relative ${className}`}
     >
       {/* Avatar */}
       <img
@@ -49,7 +55,7 @@ export default function UserCard({
         </p>
       )}
 
-      {/* Skills (matches) – always stacked + uniform */}
+      {/* Skills (matches) */}
       {(useful !== undefined || useless !== undefined) && (
         <div className="mt-3 w-full flex flex-col items-center gap-2">
           <span
@@ -65,6 +71,17 @@ export default function UserCard({
             Useless: {useless || "—"}
           </span>
         </div>
+      )}
+
+      {/* 🔹 Delete Friend Button (only in FriendsList) */}
+      {isFriendCard && id && (
+        <button
+          onClick={() => dispatch(removeFriend(id))}
+          className="absolute top-2 right-2 p-1 rounded-full bg-neutral-700 hover:bg-red-600 text-gray-300 hover:text-white transition"
+          title="Remove Friend"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       )}
     </div>
   );
