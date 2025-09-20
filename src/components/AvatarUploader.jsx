@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { updateAvatar } from "../api/users";
+import { fetchUserById } from "../api/auth"; // ✅ import same as ProfileCard
 import { setUser } from "../redux/userSlice";
 
 export default function AvatarUploader({ userId, onClose }) {
@@ -14,12 +15,12 @@ export default function AvatarUploader({ userId, onClose }) {
     if (!file) return;
     setBusy(true);
     try {
-      const data = await updateAvatar(userId, file);
+      await updateAvatar(userId, file);
 
-      // ✅ Update Redux user object
-      dispatch(setUser({ id: userId, avatar_url: data.user.avatar_url }));
+      // ✅ Fetch the fresh user object, not just guess the URL
+      const latest = await fetchUserById(userId);
+      dispatch(setUser(latest));
 
-      // optionally call parent callbacks if needed
       onClose?.();
     } catch (e) {
       console.error(e);
@@ -35,7 +36,7 @@ export default function AvatarUploader({ userId, onClose }) {
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="user" // ✅ add this if you want mobile camera
+        capture="user"
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
