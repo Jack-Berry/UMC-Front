@@ -2,10 +2,19 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiFetch from "../api/apiClient";
 
-// 🔹 Fetch all events (public)
-export const fetchEvents = createAsyncThunk("events/fetchEvents", async () => {
-  return await apiFetch("/api/events");
-});
+// 🔹 Fetch all events (public, optionally sorted by distance)
+export const fetchEvents = createAsyncThunk(
+  "events/fetchEvents",
+  async ({ lat, lng } = {}, { rejectWithValue }) => {
+    try {
+      const query = lat && lng ? `?lat=${lat}&lng=${lng}` : "";
+      const res = await apiFetch(`/api/events${query}`); // ✅ use apiFetch
+      return res;
+    } catch (err) {
+      return rejectWithValue(err.message || "Failed to fetch events");
+    }
+  }
+);
 
 // 🔹 Fetch events user is registered for (protected)
 export const fetchUserEvents = createAsyncThunk(

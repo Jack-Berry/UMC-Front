@@ -21,6 +21,7 @@ import FriendsList from "../components/FriendsList";
 import MatchesList from "../components/MatchesList";
 import UserEvents from "../components/UserEvents";
 import { calculateProfileCompletion } from "../utils/profileCompletion";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ export default function Dashboard() {
     }
   }, [loading, user, navigate]);
 
-  if (loading || !user) return <p className="text-white">Loading...</p>;
+  if (loading || !user) return <LoadingSpinner text="Loading dashboard..." />;
 
   return (
     <div className="text-white p-6 max-w-4xl mx-auto space-y-6">

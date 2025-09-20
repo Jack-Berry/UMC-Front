@@ -3,20 +3,28 @@ import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { CheckCircle, XCircle } from "lucide-react";
 import { calculateAssessmentScore } from "../utils/calculateAssessmentScore";
+import { calculateProfileCompletion } from "../utils/profileCompletion";
 
 export default function ProfileStats() {
   const user = useSelector((state) => state.user.current);
-  const profileCompletion = useSelector(
-    (state) => state.user.profileCompletion
-  );
   const assessments = useSelector((state) => state.assessments.byType);
 
-  const completionPercent = Math.min(Math.ceil(profileCompletion * 100), 100);
   const [expanded, setExpanded] = useState(false);
+
+  // ✅ Calculate profile completion with new logic
+  const completionPercent = useMemo(() => {
+    return Math.min(
+      Math.ceil(
+        calculateProfileCompletion(user, { byType: assessments }) * 100
+      ),
+      100
+    );
+  }, [user, assessments]);
 
   const assessmentScore = useMemo(() => {
     return calculateAssessmentScore(assessments);
   }, [assessments]);
+
   const score = assessmentScore;
   const scoreLabel = useMemo(() => {
     if (!score) return { label: "Unrated", color: "bg-gray-500" };
@@ -42,7 +50,7 @@ export default function ProfileStats() {
     return { label: "Legendary", color: "bg-brand-500" };
   }, [score]);
 
-  // ✅ Check profile requirements
+  // ✅ Checklist requirements
   const requirements = [
     {
       label: "Verify your email",
@@ -56,7 +64,6 @@ export default function ProfileStats() {
         user.avatar_url !== "null" &&
         user.avatar_url !== "undefined",
     },
-
     {
       label: "Write something about yourself",
       done:
@@ -64,9 +71,13 @@ export default function ProfileStats() {
         (!!user?.useful_at && user.useful_at.trim().length > 2) ||
         (!!user?.useless_at && user.useless_at.trim().length > 2),
     },
+    {
+      label: "Add your location",
+      done: !!(user?.lat && user?.lng),
+    },
   ];
 
-  // ✅ Assessments requirements
+  // ✅ Assessment requirements
   const assessmentLabels = {
     initial: "Initial Assessment",
     diy: "DIY Assessment",
@@ -79,7 +90,7 @@ export default function ProfileStats() {
   Object.entries(assessmentLabels).forEach(([key, label]) => {
     requirements.push({
       label: `Complete the ${label}`,
-      done: assessments[key]?.completed || false,
+      done: assessments?.[key]?.completed || false,
     });
   });
 

@@ -2,9 +2,10 @@
 
 const PROFILE_CRITERIA = {
   assessments: 0.5,
-  emailVerified: 0.2,
-  profilePicture: 0.15,
+  emailVerified: 0.15,
+  profilePicture: 0.1,
   aboutSection: 0.15,
+  location: 0.1, // ✅ new weight for location
 };
 
 export function calculateAssessmentCompletion(statusOrByType) {
@@ -42,10 +43,9 @@ export function calculateProfileCompletion(user, assessmentStatus) {
   if (!user) return 0;
 
   const assessmentsDone = calculateAssessmentCompletion(assessmentStatus);
-
   const emailVerified = !!user.email_verified;
 
-  // ✅ Check profile picture URL is present, non-empty, and not just "null"/"undefined"
+  // ✅ Profile picture check
   const hasProfilePic =
     typeof user.avatar_url === "string" &&
     user.avatar_url.trim() !== "" &&
@@ -58,11 +58,15 @@ export function calculateProfileCompletion(user, assessmentStatus) {
     (!!user.useful_at && user.useful_at.trim().length > 2) ||
     (!!user.useless_at && user.useless_at.trim().length > 2);
 
+  // ✅ Location must have both lat and lng
+  const hasLocation = !!(user.lat && user.lng);
+
   let score = 0;
   score += assessmentsDone * PROFILE_CRITERIA.assessments;
   score += (emailVerified ? 1 : 0) * PROFILE_CRITERIA.emailVerified;
   score += (hasProfilePic ? 1 : 0) * PROFILE_CRITERIA.profilePicture;
   score += (hasAbout ? 1 : 0) * PROFILE_CRITERIA.aboutSection;
+  score += (hasLocation ? 1 : 0) * PROFILE_CRITERIA.location;
 
   return score;
 }

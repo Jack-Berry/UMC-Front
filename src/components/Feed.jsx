@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getNews } from "../redux/newsSlice";
-import { Link } from "react-router-dom";
+import LoadingSpinner from "./LoadingSpinner";
 
 export default function Feed() {
   const dispatch = useDispatch();
@@ -17,7 +17,7 @@ export default function Feed() {
       <h2 className="text-xl font-bold mb-4">Latest News</h2>
 
       {loading ? (
-        <p className="text-gray-400">Loading news...</p>
+        <LoadingSpinner text="Loading news..." />
       ) : news.length ? (
         <ul className="space-y-6">
           {news.map((post) => (

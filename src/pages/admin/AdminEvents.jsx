@@ -13,6 +13,7 @@ import {
 import apiFetch from "../../api/apiClient";
 import { fetchEvents } from "../../redux/eventsSlice";
 import EventModal from "../../components/EventModal";
+import LocationAutocomplete from "../../components/LocationAutocomplete";
 
 export default function AdminEvents() {
   const dispatch = useDispatch();
@@ -21,10 +22,20 @@ export default function AdminEvents() {
   const [expandedId, setExpandedId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [page, setPage] = useState(1);
+  const perPage = 6;
+
+  const [searchLocation, setSearchLocation] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchEvents());
-  }, [dispatch]);
+    if (searchLocation) {
+      dispatch(
+        fetchEvents({ lat: searchLocation.lat, lng: searchLocation.lng })
+      );
+    } else {
+      dispatch(fetchEvents());
+    }
+  }, [dispatch, searchLocation]);
 
   const openModal = () => {
     setEditingEvent(null);
@@ -67,6 +78,10 @@ export default function AdminEvents() {
     }
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(events.length / perPage);
+  const paginatedEvents = events.slice((page - 1) * perPage, page * perPage);
+
   return (
     <div className="p-5 bg-neutral-900 text-white rounded-lg">
       <div className="flex justify-between items-center mb-6">
@@ -79,9 +94,35 @@ export default function AdminEvents() {
         </button>
       </div>
 
-      {events.length ? (
+      {/* 🔹 Location Search */}
+      <div className="mb-4">
+        <LocationAutocomplete
+          placeholder="Search a location..."
+          onSelect={(loc) => {
+            setSearchLocation(loc);
+            setPage(1);
+          }}
+        />
+        {searchLocation && (
+          <p className="mt-2 text-sm text-gray-400">
+            Showing events near{" "}
+            <span className="font-medium">{searchLocation.name}</span>.{" "}
+            <button
+              className="text-brand-400 hover:underline"
+              onClick={() => {
+                setSearchLocation(null);
+                setPage(1);
+              }}
+            >
+              Reset
+            </button>
+          </p>
+        )}
+      </div>
+
+      {paginatedEvents.length ? (
         <ul className="space-y-4">
-          {events.map((event) => {
+          {paginatedEvents.map((event) => {
             const isExpanded = expandedId === event.id;
             return (
               <li
@@ -161,6 +202,29 @@ export default function AdminEvents() {
         </ul>
       ) : (
         <p className="text-gray-400">No events yet.</p>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-3 py-1 rounded bg-neutral-700 disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <span className="text-sm text-gray-400">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-3 py-1 rounded bg-neutral-700 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       )}
 
       <EventModal

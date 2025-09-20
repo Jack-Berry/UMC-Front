@@ -21,6 +21,15 @@ export default function UserEvents({ events: registeredEventsProp = [] }) {
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
 
+  // section collapse state
+  const [showHosted, setShowHosted] = useState(true);
+  const [showRegistered, setShowRegistered] = useState(true);
+
+  // pagination state
+  const [hostPage, setHostPage] = useState(1);
+  const [regPage, setRegPage] = useState(1);
+  const perPage = 6;
+
   // current user
   const currentUser =
     useSelector((s) => s.user?.current) || useSelector((s) => s.user?.data);
@@ -39,6 +48,19 @@ export default function UserEvents({ events: registeredEventsProp = [] }) {
   const registeredEvents = registeredEventsProp.length
     ? registeredEventsProp
     : reduxUserEvents;
+
+  // paginate hosted + registered separately
+  const totalHostPages = Math.ceil(hostedEvents.length / perPage) || 1;
+  const totalRegPages = Math.ceil(registeredEvents.length / perPage) || 1;
+
+  const paginatedHosted = hostedEvents.slice(
+    (hostPage - 1) * perPage,
+    hostPage * perPage
+  );
+  const paginatedRegistered = registeredEvents.slice(
+    (regPage - 1) * perPage,
+    regPage * perPage
+  );
 
   const openModal = () => {
     setEditingEvent(null);
@@ -83,6 +105,31 @@ export default function UserEvents({ events: registeredEventsProp = [] }) {
     }
   };
 
+  const renderPagination = (page, setPage, totalPages) => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex justify-center items-center gap-4 mt-4">
+        <button
+          disabled={page === 1}
+          onClick={() => setPage((p) => p - 1)}
+          className="px-3 py-1 rounded bg-neutral-700 disabled:opacity-50"
+        >
+          Prev
+        </button>
+        <span className="text-sm text-gray-400">
+          Page {page} of {totalPages}
+        </span>
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage((p) => p + 1)}
+          className="px-3 py-1 rounded bg-neutral-700 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="p-5 rounded-lg shadow-lg bg-neutral-800 text-white">
       <div className="flex justify-between items-center mb-4">
@@ -98,174 +145,200 @@ export default function UserEvents({ events: registeredEventsProp = [] }) {
 
       {/* Hosted events */}
       <section className="mb-6">
-        <h4 className="text-md font-semibold mb-3">Events I’m Hosting</h4>
-        {hostedEvents.length ? (
-          <ul className="space-y-3">
-            {hostedEvents.map((event) => {
-              const isExpanded = expandedId === event.id;
-              return (
-                <li
-                  key={event.id}
-                  className="bg-slate-700 rounded-lg p-4 flex flex-col gap-2"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{event.title}</h4>
-                      <div className="flex items-center text-sm text-gray-200 mt-1 gap-4">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {new Date(event.start_at).toLocaleDateString("en-GB")}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {event.venue || event.address}
-                        </span>
+        <button
+          onClick={() => setShowHosted((s) => !s)}
+          className="flex justify-between items-center w-full text-md font-semibold mb-3"
+        >
+          <span>Events I’m Hosting</span>
+          {showHosted ? <ChevronUp /> : <ChevronDown />}
+        </button>
+        {showHosted &&
+          (hostedEvents.length ? (
+            <>
+              <ul className="space-y-3">
+                {paginatedHosted.map((event) => {
+                  const isExpanded = expandedId === event.id;
+                  return (
+                    <li
+                      key={event.id}
+                      className="bg-slate-700 rounded-lg p-4 flex flex-col gap-2"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold">{event.title}</h4>
+                          <div className="flex items-center text-sm text-gray-200 mt-1 gap-4">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {new Date(event.start_at).toLocaleDateString(
+                                "en-GB"
+                              )}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {event.venue || event.address}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditModal(event)}
+                            className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
+                          >
+                            <Pencil className="w-4 h-4" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(event.id)}
+                            className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete
+                          </button>
+                          <button
+                            onClick={() =>
+                              setExpandedId(isExpanded ? null : event.id)
+                            }
+                            className="text-gray-300 hover:text-white"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => openEditModal(event)}
-                        className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
-                      >
-                        <Pencil className="w-4 h-4" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(event.id)}
-                        className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </button>
-                      <button
-                        onClick={() =>
-                          setExpandedId(isExpanded ? null : event.id)
-                        }
-                        className="text-gray-300 hover:text-white"
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="w-5 h-5" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
 
-                  {isExpanded && (
-                    <div className="mt-2 space-y-2 text-sm text-gray-100">
-                      <p>{event.description || "No description provided."}</p>
-                      <p>
-                        <strong>Time:</strong>{" "}
-                        {new Date(event.start_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        –{" "}
-                        {new Date(event.end_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                      {(event.address || event.location) && (
-                        <p className="text-gray-400 text-sm">
-                          <strong>Address:</strong>{" "}
-                          {event.address || event.location}
-                        </p>
+                      {isExpanded && (
+                        <div className="mt-2 space-y-2 text-sm text-gray-100">
+                          <p>
+                            {event.description || "No description provided."}
+                          </p>
+                          <p>
+                            <strong>Time:</strong>{" "}
+                            {new Date(event.start_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            –{" "}
+                            {new Date(event.end_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                          {(event.address || event.location) && (
+                            <p className="text-gray-400 text-sm">
+                              <strong>Address:</strong>{" "}
+                              {event.address || event.location}
+                            </p>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-gray-400 text-sm">
-            You’re not hosting any events.
-          </p>
-        )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {renderPagination(hostPage, setHostPage, totalHostPages)}
+            </>
+          ) : (
+            <p className="text-gray-400 text-sm">
+              You’re not hosting any events.
+            </p>
+          ))}
       </section>
 
       {/* Registered events */}
       <section>
-        <h4 className="text-md font-semibold mb-3">
-          Events I’m Registered For
-        </h4>
-        {registeredEvents.length ? (
-          <ul className="space-y-3">
-            {registeredEvents.map((event) => {
-              const isExpanded = expandedId === event.id;
-              return (
-                <li
-                  key={event.id}
-                  className="bg-slate-700 rounded-lg p-4 flex flex-col gap-2"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{event.title}</h4>
-                      <div className="flex items-center text-sm text-gray-200 mt-1 gap-4">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {new Date(event.start_at).toLocaleDateString("en-GB")}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {event.venue || event.address}
-                        </span>
+        <button
+          onClick={() => setShowRegistered((s) => !s)}
+          className="flex justify-between items-center w-full text-md font-semibold mb-3"
+        >
+          <span>Events I’m Registered For</span>
+          {showRegistered ? <ChevronUp /> : <ChevronDown />}
+        </button>
+        {showRegistered &&
+          (registeredEvents.length ? (
+            <>
+              <ul className="space-y-3">
+                {paginatedRegistered.map((event) => {
+                  const isExpanded = expandedId === event.id;
+                  return (
+                    <li
+                      key={event.id}
+                      className="bg-slate-700 rounded-lg p-4 flex flex-col gap-2"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold">{event.title}</h4>
+                          <div className="flex items-center text-sm text-gray-200 mt-1 gap-4">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {new Date(event.start_at).toLocaleDateString(
+                                "en-GB"
+                              )}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {event.venue || event.address}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => dispatch(unregisterEvent(event.id))}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                          >
+                            Unregister
+                          </button>
+                          <button
+                            onClick={() =>
+                              setExpandedId(isExpanded ? null : event.id)
+                            }
+                            className="text-gray-300 hover:text-white"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => dispatch(unregisterEvent(event.id))}
-                        className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Unregister
-                      </button>
-                      <button
-                        onClick={() =>
-                          setExpandedId(isExpanded ? null : event.id)
-                        }
-                        className="text-gray-300 hover:text-white"
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="w-5 h-5" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
 
-                  {isExpanded && (
-                    <div className="mt-2 space-y-2 text-sm text-gray-100">
-                      <p>{event.description || "No description provided."}</p>
-                      <p>
-                        <strong>Time:</strong>{" "}
-                        {new Date(event.start_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        –{" "}
-                        {new Date(event.end_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                      {(event.address || event.location) && (
-                        <p className="text-gray-400 text-sm">
-                          <strong>Address:</strong>{" "}
-                          {event.address || event.location}
-                        </p>
+                      {isExpanded && (
+                        <div className="mt-2 space-y-2 text-sm text-gray-100">
+                          <p>
+                            {event.description || "No description provided."}
+                          </p>
+                          <p>
+                            <strong>Time:</strong>{" "}
+                            {new Date(event.start_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            –{" "}
+                            {new Date(event.end_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                          {(event.address || event.location) && (
+                            <p className="text-gray-400 text-sm">
+                              <strong>Address:</strong>{" "}
+                              {event.address || event.location}
+                            </p>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-gray-400 text-sm">
-            You’re not registered for any events yet.
-          </p>
-        )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {renderPagination(regPage, setRegPage, totalRegPages)}
+            </>
+          ) : (
+            <p className="text-gray-400 text-sm">
+              You’re not registered for any events yet.
+            </p>
+          ))}
       </section>
 
       {/* Reusable Event Modal */}

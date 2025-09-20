@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getNews, addNews, editNews, removeNews } from "../../redux/newsSlice";
 import { PlusCircle, Pencil, Trash2, Link as LinkIcon } from "lucide-react";
 import NewsModal from "../../components/NewsModal";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 export default function AdminNews() {
   const dispatch = useDispatch();
@@ -47,7 +48,7 @@ export default function AdminNews() {
       </div>
 
       {loading ? (
-        <p className="text-gray-400">Loading news...</p>
+        <LoadingSpinner text="Loading news..." />
       ) : news.length ? (
         <ul className="space-y-4">
           {news.map((post) => (

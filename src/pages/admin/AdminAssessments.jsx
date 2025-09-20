@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import apiFetch from "../../api/apiClient";
 import Toast from "../../components/Toast";
 import { Trash2 } from "lucide-react";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const DEFAULT_LABELS = {
   initial: "Initial Assessment",
@@ -147,7 +148,7 @@ export default function AdminAssessments() {
     });
   };
 
-  if (loading) return <p className="text-white">Loading assessments...</p>;
+  if (loading) return <LoadingSpinner text="Loading assessments..." />;
 
   return (
     <div className="space-y-8">

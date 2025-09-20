@@ -14,3 +14,19 @@
 body {
   @apply bg-neutral-900 text-white font-sans;
 }
+
+@keyframes pulse-grow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+.animate-pulse-grow {
+  animation: pulse-grow 1.5s ease-in-out infinite;
+}
