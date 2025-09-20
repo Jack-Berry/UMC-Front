@@ -1,10 +1,13 @@
 import { useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 import { updateAvatar } from "../api/users";
+import { setUser } from "../redux/userSlice";
 
-export default function AvatarUploader({ userId, onUploaded, onClose }) {
+export default function AvatarUploader({ userId, onClose }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const dispatch = useDispatch();
 
   async function handleFile(file) {
     setError("");
@@ -12,7 +15,11 @@ export default function AvatarUploader({ userId, onUploaded, onClose }) {
     setBusy(true);
     try {
       const data = await updateAvatar(userId, file);
-      onUploaded?.(data.user.avatar_url);
+
+      // ✅ Update Redux user object
+      dispatch(setUser({ id: userId, avatar_url: data.user.avatar_url }));
+
+      // optionally call parent callbacks if needed
       onClose?.();
     } catch (e) {
       console.error(e);
@@ -28,6 +35,7 @@ export default function AvatarUploader({ userId, onUploaded, onClose }) {
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="user" // ✅ add this if you want mobile camera
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
