@@ -23,6 +23,9 @@ import AdminEvents from "./pages/admin/AdminEvents.jsx";
 import AdminNews from "./pages/admin/AdminNews.jsx";
 import Messages from "./pages/Messages.jsx";
 import Home from "./pages/Home.jsx";
+import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
+import TermsOfUse from "./components/TermsOfUse.jsx";
+import SafeguardingPolicy from "./components/SafeguardingPolicy.jsx";
 
 /* 🔑 Attach API key directly to gmpx-loader */
 const loaderEl = document.getElementById("gmpx-loader");
@@ -88,6 +91,11 @@ function AuthenticatedApp() {
           <Route path="events" element={<AdminEvents />} />
           <Route path="news" element={<AdminNews />} /> {/* ✅ Added */}
         </Route>
+
+        {/* 🔹 Public policy/legal routes */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
+        <Route path="/safeguarding-policy" element={<SafeguardingPolicy />} />
       </Route>
     </Routes>
   );

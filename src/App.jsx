@@ -1,6 +1,7 @@
 // src/App.jsx
 import React from "react";
-import Navbar from "./components/Navbar"; // you'll create this
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import { Outlet } from "react-router-dom";
 
 export default function App() {
@@ -10,6 +11,7 @@ export default function App() {
       <main className="p-4">
         <Outlet />
       </main>
+      <Footer />
     </>
   );
 }
