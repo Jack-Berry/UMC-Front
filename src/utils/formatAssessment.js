@@ -18,7 +18,7 @@ export function formatAssessmentQuestions(rows) {
       const parentObj = {
         id: q.id,
         text: q.text,
-        followUps: { minScore: 4, questions: [] },
+        followUps: { minScore: 1, questions: [] },
       };
 
       categories[q.category].questions.push(parentObj);
