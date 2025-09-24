@@ -1,5 +1,5 @@
 // src/components/UserResults.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useSwipeable } from "react-swipeable";
 import { ClipboardList } from "lucide-react";
@@ -12,7 +12,6 @@ export default function UserResults() {
   const assessments = useSelector((state) => state.assessments.byType);
   const allAnswers = selectAllAnswers(assessments);
 
-  // 🔹 detect if user has completed *any* in-depth assessments
   const hasInDepthData = Object.entries(assessments).some(
     ([type, data]) => type !== "initial" && data?.completed
   );
@@ -58,15 +57,20 @@ export default function UserResults() {
     trackMouse: true,
   });
 
-  // Keyboard support
+  // Measure active slide height
+  const containerRef = useRef(null);
+  const [containerHeight, setContainerHeight] = useState("auto");
+
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "ArrowRight") goNext();
-      if (e.key === "ArrowLeft") goPrev();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [slides.length]);
+    if (containerRef.current) {
+      const activeSlide = containerRef.current.querySelector(
+        `[data-slide-index="${index}"]`
+      );
+      if (activeSlide) {
+        setContainerHeight(`${activeSlide.scrollHeight}px`);
+      }
+    }
+  }, [index, allAnswers, hasInDepthData]);
 
   return (
     <div className="text-white">
@@ -77,30 +81,36 @@ export default function UserResults() {
             {index + 1} / {slides.length}
           </div>
         </div>
-        {/* Put AssessmentReminder under heading */}
         <div className="mt-1">
           <AssessmentReminder />
         </div>
       </div>
 
       <div className="relative" {...swipeHandlers}>
-        {/* Slides */}
-        <div className="overflow-hidden">
-          <div
-            className="flex transition-transform duration-300 ease-in-out"
-            style={{ transform: `translateX(-${index * 100}%)` }}
-          >
-            {slides.map((slide) => (
-              <div key={slide.key} className="min-w-full flex">
-                <div className="w-full flex flex-col">
-                  <div className="mb-3">
-                    <h3 className="text-lg font-semibold">{slide.title}</h3>
-                  </div>
-                  <div className="flex-1 ">{slide.render()}</div>
+        {/* Slides wrapper that resizes to active content */}
+        <div
+          className="relative overflow-hidden transition-all duration-500 ease-in-out"
+          style={{ height: containerHeight }}
+          ref={containerRef}
+        >
+          {slides.map((slide, i) => (
+            <div
+              key={slide.key}
+              data-slide-index={i}
+              className={`absolute top-0 left-0 w-full transition-opacity duration-300 ${
+                i === index
+                  ? "opacity-100 relative"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div className="w-full flex flex-col">
+                <div className="mb-3">
+                  <h3 className="text-lg font-semibold">{slide.title}</h3>
                 </div>
+                {slide.render()}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
 
         {/* Nav buttons */}

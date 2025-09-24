@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import TagGraphs from "./TagGraphs";
 
+// ---------- Helpers ----------
 function aggregatePerCategory(answers = []) {
   const filtered = answers.filter((a) => a.assessment_type !== "initial");
   const buckets = {};
@@ -30,10 +31,28 @@ function aggregatePerCategory(answers = []) {
   }));
 }
 
+// Custom tick renderer for radar chart (wraps labels nicely)
+const CustomAngleTick = ({ x, y, payload }) => {
+  // Split long labels on "&" or space if needed
+  const parts = payload.value.split(/ & | (?=\w{6,})/);
+  return (
+    <text x={x} y={y} textAnchor="middle" fill="#e5e7eb" fontSize={10}>
+      {parts.map((word, i) => (
+        <tspan key={i} x={x} dy={i === 0 ? 0 : 12}>
+          {word}
+        </tspan>
+      ))}
+    </text>
+  );
+};
+
 export default function CategoryGraphs({ answers = [] }) {
-  const [mode, setMode] = useState("radar");
+  const [mode, setMode] = useState("radar"); // 'radar' | 'bar' | 'heatmap'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const data = useMemo(() => aggregatePerCategory(answers), [answers]);
+
+  // detect mobile viewport
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   if (selectedCategory) {
     return (
@@ -91,43 +110,21 @@ export default function CategoryGraphs({ answers = [] }) {
       </div>
 
       {/* Chart area */}
-      <div className="w-full h-[550px]">
+      <div className="w-full h-[400px] sm:h-[550px]">
         <ResponsiveContainer>
           {mode === "radar" ? (
             <RadarChart
               cx="50%"
               cy="50%"
-              outerRadius="85%"
+              outerRadius={isMobile ? "70%" : "85%"}
               data={data}
-              margin={{ top: 30, right: 30, bottom: 30, left: 30 }}
               onClick={(e) => {
                 if (e && e.activeLabel) setSelectedCategory(e.activeLabel);
               }}
               className="cursor-pointer"
             >
               <PolarGrid stroke="#3f3f46" />
-              <PolarAngleAxis
-                dataKey="category"
-                tick={({ x, y, payload, textAnchor }) => {
-                  const words = payload.value.split(" & "); // split on ampersand (customise if needed)
-                  return (
-                    <text
-                      x={x}
-                      y={y}
-                      textAnchor={textAnchor}
-                      fill="#e5e7eb"
-                      fontSize={12}
-                    >
-                      {words.map((word, i) => (
-                        <tspan key={i} x={x} dy={i === 0 ? 0 : 14}>
-                          {word}
-                        </tspan>
-                      ))}
-                    </text>
-                  );
-                }}
-              />
-
+              <PolarAngleAxis dataKey="category" tick={<CustomAngleTick />} />
               <PolarRadiusAxis
                 angle={30}
                 domain={[0, 100]}
@@ -152,7 +149,12 @@ export default function CategoryGraphs({ answers = [] }) {
           ) : mode === "bar" ? (
             <BarChart
               data={data}
-              margin={{ top: 10, right: 20, left: 0, bottom: 20 }}
+              margin={{
+                top: 10,
+                right: 10,
+                left: 0,
+                bottom: isMobile ? 50 : 20,
+              }}
               onClick={(state) => {
                 if (state && state.activeLabel)
                   setSelectedCategory(state.activeLabel);
@@ -162,10 +164,11 @@ export default function CategoryGraphs({ answers = [] }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
               <XAxis
                 dataKey="category"
-                tick={{ fill: "#e5e7eb", fontSize: 12 }}
+                tick={{ fill: "#e5e7eb", fontSize: isMobile ? 9 : 12 }}
                 interval={0}
-                angle={-15}
-                dy={10}
+                angle={isMobile ? -45 : -15}
+                textAnchor="end"
+                height={isMobile ? 80 : 40}
               />
               <YAxis
                 domain={[0, 100]}
@@ -182,6 +185,7 @@ export default function CategoryGraphs({ answers = [] }) {
               <Bar dataKey="score" fill="#22d3ee" radius={[6, 6, 0, 0]} />
             </BarChart>
           ) : (
+            // Heatmap
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
               {[...data]
                 .sort((a, b) => b.score - a.score)
