@@ -91,11 +91,13 @@ export default function UserResults() {
             style={{ transform: `translateX(-${index * 100}%)` }}
           >
             {slides.map((slide) => (
-              <div key={slide.key} className="min-w-full">
-                <div className="mb-3">
-                  <h3 className="text-lg font-semibold">{slide.title}</h3>
+              <div key={slide.key} className="min-w-full flex">
+                <div className="w-full flex flex-col">
+                  <div className="mb-3">
+                    <h3 className="text-lg font-semibold">{slide.title}</h3>
+                  </div>
+                  <div className="flex-1 ">{slide.render()}</div>
                 </div>
-                {slide.render()}
               </div>
             ))}
           </div>

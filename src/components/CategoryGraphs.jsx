@@ -91,14 +91,15 @@ export default function CategoryGraphs({ answers = [] }) {
       </div>
 
       {/* Chart area */}
-      <div className="w-full h-[380px]">
+      <div className="w-full h-[550px]">
         <ResponsiveContainer>
           {mode === "radar" ? (
             <RadarChart
               cx="50%"
               cy="50%"
-              outerRadius="80%"
+              outerRadius="85%"
               data={data}
+              margin={{ top: 30, right: 30, bottom: 30, left: 30 }}
               onClick={(e) => {
                 if (e && e.activeLabel) setSelectedCategory(e.activeLabel);
               }}
@@ -107,8 +108,26 @@ export default function CategoryGraphs({ answers = [] }) {
               <PolarGrid stroke="#3f3f46" />
               <PolarAngleAxis
                 dataKey="category"
-                tick={{ fill: "#e5e7eb", fontSize: 12 }}
+                tick={({ x, y, payload, textAnchor }) => {
+                  const words = payload.value.split(" & "); // split on ampersand (customise if needed)
+                  return (
+                    <text
+                      x={x}
+                      y={y}
+                      textAnchor={textAnchor}
+                      fill="#e5e7eb"
+                      fontSize={12}
+                    >
+                      {words.map((word, i) => (
+                        <tspan key={i} x={x} dy={i === 0 ? 0 : 14}>
+                          {word}
+                        </tspan>
+                      ))}
+                    </text>
+                  );
+                }}
               />
+
               <PolarRadiusAxis
                 angle={30}
                 domain={[0, 100]}
@@ -133,7 +152,7 @@ export default function CategoryGraphs({ answers = [] }) {
           ) : mode === "bar" ? (
             <BarChart
               data={data}
-              margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+              margin={{ top: 10, right: 20, left: 0, bottom: 20 }}
               onClick={(state) => {
                 if (state && state.activeLabel)
                   setSelectedCategory(state.activeLabel);

@@ -85,7 +85,11 @@ export default function ProfileCard() {
   }
 
   return (
-    <div className="w-full bg-neutral-800 p-5 rounded-lg shadow-md relative">
+    <div
+      className={`w-full bg-neutral-800 p-5 rounded-lg shadow-md relative transition-all duration-300 ${
+        edit ? "space-y-6" : ""
+      }`}
+    >
       {/* Hidden file input */}
       <input
         type="file"
@@ -96,9 +100,17 @@ export default function ProfileCard() {
       />
 
       {/* Top row */}
-      <div className="flex items-center gap-4">
+      <div
+        className={`flex items-center gap-4 ${
+          edit ? "flex-col sm:flex-row sm:items-start" : ""
+        }`}
+      >
         {/* Avatar */}
-        <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-lg font-bold">
+        <div
+          className={`relative rounded-full overflow-hidden bg-gray-600 flex items-center justify-center font-bold ${
+            edit ? "w-28 h-28 text-2xl" : "w-16 h-16 text-lg"
+          }`}
+        >
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -106,12 +118,12 @@ export default function ProfileCard() {
               className="w-full h-full object-cover"
             />
           ) : (
-            initials
+            <span>{initials}</span>
           )}
 
+          {/* Overlay only in edit mode */}
           {edit && (
             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
-              {/* Desktop: direct upload */}
               <button
                 onClick={() => triggerFilePicker()}
                 className="hidden sm:flex items-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white text-xs px-2 py-1 rounded"
@@ -120,7 +132,6 @@ export default function ProfileCard() {
                 <Upload size={14} />
                 {uploading ? "..." : "Upload"}
               </button>
-              {/* Mobile: show overlay options */}
               <button
                 onClick={() => setShowMobileOptions(true)}
                 className="sm:hidden flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs px-2 py-1 rounded"
@@ -134,7 +145,7 @@ export default function ProfileCard() {
         </div>
 
         {/* Name + Meta */}
-        <div className="flex-1">
+        <div className={`flex-1 ${edit ? "text-center sm:text-left" : ""}`}>
           {edit ? (
             <input
               value={name}

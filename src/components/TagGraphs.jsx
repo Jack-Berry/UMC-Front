@@ -132,7 +132,7 @@ export default function TagGraphs({ answers = [], category, onBack }) {
             </BarChart>
           ) : mode === "radar" ? (
             // Radar / Spider Chart
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+            <RadarChart cx="50%" cy="50%" outerRadius="90%" data={data}>
               <PolarGrid stroke="#3f3f46" />
               <PolarAngleAxis
                 dataKey="tag"
