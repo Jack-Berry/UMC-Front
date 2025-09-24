@@ -26,6 +26,9 @@ import Home from "./pages/Home.jsx";
 import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import TermsOfUse from "./components/TermsOfUse.jsx";
 import SafeguardingPolicy from "./components/SafeguardingPolicy.jsx";
+import FriendsList from "./components/FriendsList.jsx";
+import MatchesList from "./components/MatchesList.jsx";
+import UserEvents from "./components/UserEvents.jsx";
 
 /* 🔑 Attach API key directly to gmpx-loader */
 const loaderEl = document.getElementById("gmpx-loader");
@@ -69,6 +72,32 @@ function AuthenticatedApp() {
           element={
             <ProtectedRoute>
               <Messages />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="events"
+          element={
+            <ProtectedRoute>
+              <>
+                <UserEvents />
+              </>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="friends"
+          element={
+            <ProtectedRoute>
+              <FriendsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="matches"
+          element={
+            <ProtectedRoute>
+              <MatchesList />
             </ProtectedRoute>
           }
         />

@@ -1,9 +1,9 @@
-// ProfileCard.jsx
+// src/components/ProfileCard.jsx
 import { useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "../redux/userSlice";
 import { updateAvatar, updateProfile } from "../api/users";
-import { Camera, Upload, Edit3 } from "lucide-react";
+import { Upload, Edit3, Camera } from "lucide-react";
 import LocationAutocomplete from "./LocationAutocomplete";
 import { fetchUserById } from "../api/auth";
 
@@ -25,11 +25,9 @@ export default function ProfileCard() {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [showMobileOptions, setShowMobileOptions] = useState(false);
 
   const fileInputRef = useRef(null);
   const initials = (user?.name || "?").slice(0, 1);
-
   const avatarUrl = user?.avatar_url || null;
 
   async function handleSave() {
@@ -45,7 +43,6 @@ export default function ProfileCard() {
         region,
         show_location: showLocation,
       });
-
       dispatch(setUser(updated));
       setEdit(false);
     } catch (e) {
@@ -66,7 +63,6 @@ export default function ProfileCard() {
       console.error("Upload failed:", err);
     } finally {
       setUploading(false);
-      setShowMobileOptions(false);
     }
   }
 
@@ -87,7 +83,7 @@ export default function ProfileCard() {
   }
 
   return (
-    <div className="relative bg-neutral-800 p-6 rounded-lg shadow-md space-y-6">
+    <div className="w-full bg-neutral-800 p-5 rounded-lg shadow-md">
       {/* Hidden input */}
       <input
         type="file"
@@ -97,96 +93,132 @@ export default function ProfileCard() {
         onChange={handleFileChange}
       />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          {/* Avatar */}
-          <div className="relative w-44 h-44 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-2xl font-bold">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              initials
-            )}
-
-            {edit && (
-              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 p-2">
-                {/* Desktop: file picker directly */}
-                <button
-                  onClick={() => triggerFilePicker()}
-                  className="hidden sm:flex items-center justify-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white text-sm px-3 py-2 rounded-md transition"
-                  disabled={uploading}
-                >
-                  <Upload size={16} />
-                  {uploading ? "..." : "Upload"}
-                </button>
-
-                {/* Mobile: show options overlay */}
-                <button
-                  onClick={() => setShowMobileOptions(true)}
-                  className="sm:hidden flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm px-3 py-2 rounded-md transition"
-                  disabled={uploading}
-                >
-                  <Upload size={16} />
-                  {uploading ? "..." : "Change"}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Name + Meta */}
-          <div className="text-center sm:text-left">
-            {edit ? (
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-neutral-700 text-white px-3 py-2 rounded w-56 max-w-full"
-                placeholder="Your name"
-              />
-            ) : (
-              <>
-                <h2 className="text-2xl font-semibold">{user?.name}</h2>
-                <p className="text-gray-400 text-sm">Member since 2025</p>
-                {user?.location && (
-                  <p className="text-gray-300 text-sm">
-                    {user?.show_location ? user.location : "Hidden"}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+      {/* Top row */}
+      <div className="flex items-center gap-4">
+        {/* Avatar */}
+        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-lg font-bold">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt="Avatar"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            initials
+          )}
         </div>
 
+        {/* Name + Meta */}
+        <div className="flex-1">
+          {edit ? (
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="bg-neutral-700 text-white px-2 py-1 rounded w-full"
+              placeholder="Your name"
+            />
+          ) : (
+            <>
+              <h2 className="text-lg font-semibold">{user?.name}</h2>
+              <p className="text-gray-400 text-xs">Member since 2025</p>
+              {user?.location && (
+                <p className="text-gray-300 text-xs">
+                  {user?.show_location ? user.location : "Hidden"}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Edit pill */}
         {!edit && (
-          <div className="hidden sm:flex absolute top-4 right-4">
-            <button
-              className="p-2 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white shadow-md"
-              onClick={() => setEdit(true)}
-            >
-              <Edit3 size={18} />
-            </button>
-          </div>
+          <button
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-700 hover:bg-neutral-600 text-sm"
+            onClick={() => setEdit(true)}
+          >
+            <Edit3 size={14} /> Edit
+          </button>
         )}
       </div>
 
-      {!edit && (
-        <div className="flex justify-center sm:hidden">
-          <button
-            className="p-2 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white shadow-md"
-            onClick={() => setEdit(true)}
-          >
-            <Edit3 size={18} />
-          </button>
+      {/* Useful / Useless row */}
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="bg-gray-700 p-2 rounded">
+          <p className="text-xs text-gray-300">Useful at:</p>
+          {edit ? (
+            <input
+              value={usefulAt}
+              onChange={(e) => setUsefulAt(e.target.value)}
+              className="bg-neutral-800 text-white px-2 py-1 rounded w-full text-sm"
+              placeholder="DIY, spreadsheets..."
+            />
+          ) : (
+            <p className="text-sm">{user?.useful_at || "—"}</p>
+          )}
         </div>
+        <div className="bg-gray-700 p-2 rounded">
+          <p className="text-xs text-gray-300">Useless at:</p>
+          {edit ? (
+            <input
+              value={uselessAt}
+              onChange={(e) => setUselessAt(e.target.value)}
+              className="bg-neutral-800 text-white px-2 py-1 rounded w-full text-sm"
+              placeholder="Parallel parking..."
+            />
+          ) : (
+            <p className="text-sm">{user?.useless_at || "—"}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Location row */}
+      {edit ? (
+        <div className="bg-gray-700 p-3 rounded mt-4">
+          <p className="text-sm text-gray-300 mb-2">Location:</p>
+          <LocationAutocomplete
+            placeholder="Enter your city or region"
+            onSelect={(place) => {
+              setLocation(place.name || "");
+              setLat(place.lat || null);
+              setLng(place.lng || null);
+
+              const regionName =
+                place.raw?.addressComponents?.find((c) =>
+                  c.types.includes("locality")
+                )?.longText ||
+                place.raw?.addressComponents?.find((c) =>
+                  c.types.includes("administrative_area_level_2")
+                )?.longText ||
+                place.raw?.displayName?.text ||
+                "";
+
+              setRegion(regionName);
+            }}
+          />
+          <label className="flex items-center gap-2 text-gray-300 text-sm mt-2">
+            <input
+              type="checkbox"
+              checked={showLocation}
+              onChange={(e) => setShowLocation(e.target.checked)}
+            />
+            Show location publicly
+          </label>
+        </div>
+      ) : (
+        user?.show_location &&
+        user?.region && (
+          <div className="bg-gray-700 p-2 rounded mt-4">
+            <p className="text-xs text-gray-300">Location:</p>
+            <p className="text-sm">{user.region}</p>
+          </div>
+        )
       )}
 
+      {/* Save / Cancel */}
       {edit && (
-        <div className="flex gap-2 justify-center sm:justify-end">
+        <div className="flex justify-end gap-2 mt-3">
           <button
-            className="px-4 py-2 bg-neutral-700 rounded"
+            className="px-3 py-1.5 bg-neutral-700 rounded"
             onClick={() => {
               setEdit(false);
               setName(user?.name || "");
@@ -201,121 +233,11 @@ export default function ProfileCard() {
             Cancel
           </button>
           <button
-            className="px-4 py-2 bg-brand-600 rounded disabled:opacity-50"
+            className="px-3 py-1.5 bg-brand-600 rounded disabled:opacity-50"
             onClick={handleSave}
             disabled={saving}
           >
             {saving ? "Saving..." : "Save"}
-          </button>
-        </div>
-      )}
-
-      {/* About Me */}
-      <div>
-        <h3 className="text-lg font-semibold mb-2">About Me</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gray-700 p-3 rounded">
-            <p className="text-sm text-gray-300 mb-2">I am useful at:</p>
-            {edit ? (
-              <input
-                value={usefulAt}
-                onChange={(e) => setUsefulAt(e.target.value)}
-                className="bg-neutral-800 text-white px-3 py-2 rounded w-full"
-                placeholder="e.g., DIY, spreadsheets, cooking"
-              />
-            ) : (
-              <p className="text-white font-medium">
-                {user?.useful_at || "Not set yet"}
-              </p>
-            )}
-          </div>
-
-          <div className="bg-gray-700 p-3 rounded">
-            <p className="text-sm text-gray-300 mb-2">I am useless at:</p>
-            {edit ? (
-              <input
-                value={uselessAt}
-                onChange={(e) => setUselessAt(e.target.value)}
-                className="bg-neutral-800 text-white px-3 py-2 rounded w-full"
-                placeholder="e.g., public speaking, parallel parking"
-              />
-            ) : (
-              <p className="text-white font-medium">
-                {user?.useless_at || "Not set yet"}
-              </p>
-            )}
-          </div>
-
-          {/* Location field */}
-          {edit ? (
-            <div className="bg-gray-700 p-3 rounded sm:col-span-2">
-              <p className="text-sm text-gray-300 mb-2">Location:</p>
-              <LocationAutocomplete
-                placeholder="Enter your city or region"
-                onSelect={(place) => {
-                  setLocation(place.name || "");
-                  setLat(place.lat || null);
-                  setLng(place.lng || null);
-
-                  const regionName =
-                    place.raw?.addressComponents?.find((c) =>
-                      c.types.includes("locality")
-                    )?.longText ||
-                    place.raw?.addressComponents?.find((c) =>
-                      c.types.includes("administrative_area_level_2")
-                    )?.longText ||
-                    place.raw?.displayName?.text ||
-                    "";
-
-                  setRegion(regionName);
-                }}
-              />
-              <label className="flex items-center gap-2 text-gray-300 text-sm mt-2">
-                <input
-                  type="checkbox"
-                  checked={showLocation}
-                  onChange={(e) => setShowLocation(e.target.checked)}
-                />
-                Show location publicly
-              </label>
-            </div>
-          ) : (
-            user?.show_location &&
-            user?.region && (
-              <div className="bg-gray-700 p-3 rounded sm:col-span-2">
-                <p className="text-sm text-gray-300 mb-2">Location:</p>
-                <p className="text-white font-medium">{user.region}</p>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Mobile option overlay */}
-      {showMobileOptions && (
-        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3 rounded-lg">
-          <button
-            onClick={() => triggerFilePicker({ camera: true })}
-            className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded w-40"
-            disabled={uploading}
-          >
-            <Camera size={16} />
-            {uploading ? "..." : "Camera"}
-          </button>
-          <button
-            onClick={() => triggerFilePicker({ camera: false })}
-            className="flex items-center justify-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded w-40"
-            disabled={uploading}
-          >
-            <Upload size={16} />
-            {uploading ? "..." : "Upload"}
-          </button>
-          <button
-            onClick={() => setShowMobileOptions(false)}
-            className="text-gray-300 text-sm underline mt-2"
-            disabled={uploading}
-          >
-            Cancel
           </button>
         </div>
       )}

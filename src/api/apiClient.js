@@ -27,7 +27,7 @@ async function apiFetch(endpoint, options = {}) {
     credentials: "include",
   });
 
-  if (res.status === 401 && refreshToken) {
+  if ((res.status === 401 || res.status === 403) && refreshToken) {
     console.log("⏳ Token expired, trying refresh...");
     const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
       method: "POST",
@@ -38,7 +38,6 @@ async function apiFetch(endpoint, options = {}) {
     if (refreshRes.ok) {
       const { accessToken: newAccess, refreshToken: newRefresh } =
         await refreshRes.json();
-
       localStorage.setItem("accessToken", newAccess);
       localStorage.setItem("refreshToken", newRefresh);
 
@@ -48,6 +47,8 @@ async function apiFetch(endpoint, options = {}) {
       console.warn("❌ Refresh failed, logging out.");
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
       throw new Error("Session expired, please log in again.");
     }
   }

@@ -30,25 +30,19 @@ export default function AssessmentFlow() {
     5: "Mastered it",
   };
 
-  // inside useEffect in AssessmentFlow.jsx
+  // Load questions
   useEffect(() => {
     async function loadQuestions() {
       try {
         const res = await fetchAssessmentQuestions(type);
-        console.log("🔍 API response for", type, ":", res);
-
         const raw = Array.isArray(res) ? res : res?.questions || [];
-        console.log("🔍 Parsed raw questions:", raw);
 
         if (!raw.length) {
-          console.warn("⚠️ No questions found for", type);
           setComingSoon(true);
           return;
         }
 
         const formatted = formatAssessmentQuestions(raw);
-        console.log("✅ Formatted flowData:", formatted);
-
         setFlowData(formatted);
       } catch (err) {
         console.error("❌ Failed to load questions:", err);
@@ -61,22 +55,40 @@ export default function AssessmentFlow() {
     loadQuestions();
   }, [type]);
 
-  // 🔹 Pre-fill answers if they exist
+  // Pre-fill answers if they exist
   useEffect(() => {
     async function loadExisting() {
       try {
         const existing = await fetchAssessment(type, userId);
         if (existing.answers?.length && flowData.length > 0) {
           const prefilled = {};
+
           existing.answers.forEach((a) => {
-            if (!prefilled[a.category]) prefilled[a.category] = [];
-            const idx = flowData
-              .find((c) => c.category === a.category)
-              ?.questions.findIndex((q) => q.id === a.question_id);
-            if (idx !== -1) {
-              prefilled[a.category][idx] = a.score;
+            // 1) Match category or displayCategory
+            let container =
+              flowData.find((c) => c.category === a.category) ||
+              flowData.find((c) => c.displayCategory === a.category);
+
+            // 2) Fallback: match by questionId across all steps
+            if (!container) {
+              container = flowData.find((c) =>
+                c.questions.some((q) => q.id === a.question_id)
+              );
+            }
+
+            if (container) {
+              const idx = container.questions.findIndex(
+                (q) => q.id === a.question_id
+              );
+              if (idx !== -1) {
+                if (!prefilled[container.category]) {
+                  prefilled[container.category] = [];
+                }
+                prefilled[container.category][idx] = a.score;
+              }
             }
           });
+
           setScores(prefilled);
         }
       } catch (err) {
@@ -89,7 +101,7 @@ export default function AssessmentFlow() {
     }
   }, [type, userId, flowData]);
 
-  // 🔹 Ensure follow-ups are injected when prefilled scores exist
+  // Inject follow-ups if prefilled scores qualify
   useEffect(() => {
     if (flowData.length === 0 || Object.keys(scores).length === 0) return;
 
@@ -107,7 +119,8 @@ export default function AssessmentFlow() {
 
           if (!hasFollowUps) {
             const followUpStep = {
-              category: followUpCategory,
+              category: followUpCategory, // internal key
+              displayCategory: category.category, // ✅ always the human label
               title: `Advanced ${category.category}`,
               description: `Follow-up: ${q.text}`,
               questions: q.followUps.questions.map((fq) => ({
@@ -122,6 +135,7 @@ export default function AssessmentFlow() {
     });
   }, [flowData, scores]);
 
+  // Scroll to top on step change
   useEffect(() => {
     if (questionTopRef.current) {
       questionTopRef.current.scrollIntoView({ behavior: "smooth" });
@@ -150,6 +164,7 @@ export default function AssessmentFlow() {
       if (!hasFollowUps && q.followUps.questions.length > 0) {
         const followUpStep = {
           category: followUpCategory,
+          displayCategory: currentCategory.category, // ✅ parent label
           title: `Advanced ${currentCategory.category}`,
           description: `Follow-up: ${q.text}`,
           questions: q.followUps.questions.map((fq) => ({
@@ -185,10 +200,11 @@ export default function AssessmentFlow() {
           cat.questions.forEach((q, idx) => {
             const score = scores[cat.category]?.[idx];
             if (score !== undefined) {
+              const storageCategory = cat.displayCategory || cat.category; // ✅ use nice label
               answers.push({
                 questionId: q.id,
                 questionText: q.text,
-                category: cat.category,
+                category: storageCategory,
                 score,
                 is_followup: !!q.followUpsParent,
               });
