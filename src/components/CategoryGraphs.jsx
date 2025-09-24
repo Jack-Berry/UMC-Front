@@ -14,33 +14,40 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import TagGraphs from "./TagGraphs";
 
 function aggregatePerCategory(answers = []) {
-  // Exclude initial assessment
   const filtered = answers.filter((a) => a.assessment_type !== "initial");
-
-  // Group by category
   const buckets = {};
   filtered.forEach((a) => {
     const label = a.category || "Other";
     if (!buckets[label]) buckets[label] = [];
     buckets[label].push(Number(a.score) || 0);
   });
-
   return Object.entries(buckets).map(([category, scores]) => ({
     category,
-    score: Math.round(
-      (scores.reduce((s, v) => s + v, 0) / scores.length) * 20 // scale 1–5 → 0–100
-    ),
+    score: Math.round((scores.reduce((s, v) => s + v, 0) / scores.length) * 20),
   }));
 }
 
 export default function CategoryGraphs({ answers = [] }) {
-  const [mode, setMode] = useState("radar"); // 'radar' | 'bar'
+  const [mode, setMode] = useState("radar");
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const data = useMemo(() => aggregatePerCategory(answers), [answers]);
+
+  if (selectedCategory) {
+    return (
+      <TagGraphs
+        answers={answers}
+        category={selectedCategory}
+        onBack={() => setSelectedCategory(null)}
+      />
+    );
+  }
 
   return (
     <div className="w-full rounded-2xl border border-neutral-700 bg-neutral-900 p-4 sm:p-6 shadow-md">
+      {/* Header + mode toggle */}
       <div className="flex items-center justify-between mb-4">
         <div className="inline-flex rounded-lg overflow-hidden border border-neutral-700">
           <button
@@ -63,13 +70,40 @@ export default function CategoryGraphs({ answers = [] }) {
           >
             Bar
           </button>
+          <button
+            onClick={() => setMode("heatmap")}
+            className={`px-3 py-1 text-sm ${
+              mode === "heatmap"
+                ? "bg-brand-600 text-white"
+                : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+            }`}
+          >
+            Heatmap
+          </button>
         </div>
       </div>
 
+      {/* Hint banner */}
+      <div className="mb-3 text-center">
+        <span className="inline-block px-3 py-1 rounded-full bg-brand-600/20 text-brand-400 text-sm font-medium">
+          Click a category below to see detailed skill breakdowns
+        </span>
+      </div>
+
+      {/* Chart area */}
       <div className="w-full h-[380px]">
         <ResponsiveContainer>
           {mode === "radar" ? (
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+            <RadarChart
+              cx="50%"
+              cy="50%"
+              outerRadius="80%"
+              data={data}
+              onClick={(e) => {
+                if (e && e.activeLabel) setSelectedCategory(e.activeLabel);
+              }}
+              className="cursor-pointer"
+            >
               <PolarGrid stroke="#3f3f46" />
               <PolarAngleAxis
                 dataKey="category"
@@ -96,10 +130,15 @@ export default function CategoryGraphs({ answers = [] }) {
                 fillOpacity={0.35}
               />
             </RadarChart>
-          ) : (
+          ) : mode === "bar" ? (
             <BarChart
               data={data}
               margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+              onClick={(state) => {
+                if (state && state.activeLabel)
+                  setSelectedCategory(state.activeLabel);
+              }}
+              className="cursor-pointer"
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
               <XAxis
@@ -123,11 +162,41 @@ export default function CategoryGraphs({ answers = [] }) {
               />
               <Bar dataKey="score" fill="#22d3ee" radius={[6, 6, 0, 0]} />
             </BarChart>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+              {[...data]
+                .sort((a, b) => b.score - a.score)
+                .map((d) => {
+                  const color =
+                    d.score < 40
+                      ? "bg-red-500"
+                      : d.score < 70
+                      ? "bg-yellow-500"
+                      : "bg-green-500";
+                  return (
+                    <button
+                      key={d.category}
+                      onClick={() => setSelectedCategory(d.category)}
+                      className="flex flex-col items-center justify-center p-2 rounded-md bg-neutral-800 shadow-sm hover:bg-neutral-700 cursor-pointer"
+                    >
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold text-white ${color}`}
+                      >
+                        {d.score}
+                      </div>
+                      <p className="mt-2 text-xs text-gray-300 text-center">
+                        {d.category}
+                      </p>
+                    </button>
+                  );
+                })}
+            </div>
           )}
         </ResponsiveContainer>
       </div>
+
       <p className="text-xs text-gray-400 mt-3">
-        Each category is scored out of 100 based on your assessment answers.
+        Each category is scored out of 100.
       </p>
     </div>
   );

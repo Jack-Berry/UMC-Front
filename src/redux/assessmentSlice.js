@@ -4,15 +4,26 @@ import {
   createAsyncThunk,
   createSelector,
 } from "@reduxjs/toolkit";
-import { fetchAssessment } from "../api/assessment";
+import { fetchAssessment, fetchAssessmentQuestions } from "../api/assessment";
 
 // Async thunk for fetching a user's assessment by type
 export const getAssessment = createAsyncThunk(
   "assessments/getAssessment",
   async ({ assessmentType, userId }, { rejectWithValue }) => {
     try {
-      const data = await fetchAssessment(assessmentType, userId);
-      return { assessmentType, data };
+      // Fetch answers and questions in parallel
+      const [answersRes, questionsRes] = await Promise.all([
+        fetchAssessment(assessmentType, userId), // user’s answers
+        fetchAssessmentQuestions(assessmentType), // full question set (with tags)
+      ]);
+
+      return {
+        assessmentType,
+        data: {
+          answers: answersRes.answers || [],
+          questions: questionsRes.questions || [],
+        },
+      };
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -22,7 +33,7 @@ export const getAssessment = createAsyncThunk(
 const assessmentSlice = createSlice({
   name: "assessments",
   initialState: {
-    byType: {}, // keyed by assessmentType: { answers, completed }
+    byType: {}, // keyed by assessmentType: { answers, questions, completed }
     loading: false,
     error: null,
   },
@@ -43,8 +54,10 @@ const assessmentSlice = createSlice({
         state.loading = false;
         const { assessmentType, data } = action.payload;
         console.log("Fetched assessment data:", assessmentType, data);
+
         state.byType[assessmentType] = {
           answers: data.answers || [],
+          questions: data.questions || [],
           completed: (data.answers?.length || 0) > 0,
         };
       })
@@ -87,6 +100,33 @@ export const selectAssessmentStatus = createSelector(
       },
     ],
   })
+);
+
+// 🔹 Selector: get all answers across all assessments, enriched with tags
+export const selectAnswersWithTags = createSelector(
+  (state) => state.assessments.byType,
+  (byType) => {
+    const allAnswers = [];
+    Object.entries(byType).forEach(
+      ([type, { answers = [], questions = [] }]) => {
+        // Build questionId -> tags lookup
+        const lookup = {};
+        questions.forEach((q) => {
+          lookup[q.id] = q.tags || [];
+        });
+
+        // Merge tags into each answer
+        answers.forEach((a) => {
+          allAnswers.push({
+            ...a,
+            tags: lookup[a.questionId] || [],
+            assessment_type: type,
+          });
+        });
+      }
+    );
+    return allAnswers;
+  }
 );
 
 export const { resetAssessments } = assessmentSlice.actions;

@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useSwipeable } from "react-swipeable";
 import { ClipboardList } from "lucide-react";
 import CategoryGraphs from "./CategoryGraphs";
+import SkillsOverview from "./SkillsOverview";
 import { selectAllAnswers } from "../utils/selectAllAnswers";
 import AssessmentReminder from "./AssessmentReminder";
 
@@ -37,7 +38,11 @@ export default function UserResults() {
             </div>
           ),
       },
-      // { key: "trends", title: "Trends", render: () => <TrendsGraph answers={allAnswers} /> },
+      {
+        key: "skills-overview",
+        title: "Skills Overview",
+        render: () => <SkillsOverview answers={allAnswers} />,
+      },
     ],
     [allAnswers, hasInDepthData]
   );

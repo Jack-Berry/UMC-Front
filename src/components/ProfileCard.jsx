@@ -25,6 +25,7 @@ export default function ProfileCard() {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showMobileOptions, setShowMobileOptions] = useState(false);
 
   const fileInputRef = useRef(null);
   const initials = (user?.name || "?").slice(0, 1);
@@ -63,6 +64,7 @@ export default function ProfileCard() {
       console.error("Upload failed:", err);
     } finally {
       setUploading(false);
+      setShowMobileOptions(false);
     }
   }
 
@@ -83,8 +85,8 @@ export default function ProfileCard() {
   }
 
   return (
-    <div className="w-full bg-neutral-800 p-5 rounded-lg shadow-md">
-      {/* Hidden input */}
+    <div className="w-full bg-neutral-800 p-5 rounded-lg shadow-md relative">
+      {/* Hidden file input */}
       <input
         type="file"
         accept="image/*"
@@ -96,7 +98,7 @@ export default function ProfileCard() {
       {/* Top row */}
       <div className="flex items-center gap-4">
         {/* Avatar */}
-        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-lg font-bold">
+        <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center text-lg font-bold">
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -105,6 +107,29 @@ export default function ProfileCard() {
             />
           ) : (
             initials
+          )}
+
+          {edit && (
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
+              {/* Desktop: direct upload */}
+              <button
+                onClick={() => triggerFilePicker()}
+                className="hidden sm:flex items-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white text-xs px-2 py-1 rounded"
+                disabled={uploading}
+              >
+                <Upload size={14} />
+                {uploading ? "..." : "Upload"}
+              </button>
+              {/* Mobile: show overlay options */}
+              <button
+                onClick={() => setShowMobileOptions(true)}
+                className="sm:hidden flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-xs px-2 py-1 rounded"
+                disabled={uploading}
+              >
+                <Upload size={14} />
+                {uploading ? "..." : "Change"}
+              </button>
+            </div>
           )}
         </div>
 
@@ -238,6 +263,35 @@ export default function ProfileCard() {
             disabled={saving}
           >
             {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      )}
+
+      {/* Mobile avatar options overlay */}
+      {showMobileOptions && (
+        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3 rounded-lg">
+          <button
+            onClick={() => triggerFilePicker({ camera: true })}
+            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded w-40"
+            disabled={uploading}
+          >
+            <Camera size={16} />
+            {uploading ? "..." : "Camera"}
+          </button>
+          <button
+            onClick={() => triggerFilePicker({ camera: false })}
+            className="flex items-center gap-2 bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded w-40"
+            disabled={uploading}
+          >
+            <Upload size={16} />
+            {uploading ? "..." : "Upload"}
+          </button>
+          <button
+            onClick={() => setShowMobileOptions(false)}
+            className="text-gray-300 text-sm underline mt-2"
+            disabled={uploading}
+          >
+            Cancel
           </button>
         </div>
       )}
