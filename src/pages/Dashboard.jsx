@@ -13,28 +13,25 @@ import {
   fetchUserEvents,
 } from "../redux/eventsSlice";
 import { setUser, setProfileCompletion } from "../redux/userSlice";
-import AssessmentReminder from "../components/AssessmentReminder";
-import ProfileStats from "../components/ProfileStats";
 import UserResults from "../components/UserResults";
+import ProfileStats from "../components/ProfileStats";
 import Awards from "../components/Awards";
 import ProfileCard from "../components/ProfileCard";
-import FriendsList from "../components/FriendsList";
-import MatchesList from "../components/MatchesList";
-import UserEvents from "../components/UserEvents";
-import { calculateProfileCompletion } from "../utils/profileCompletion";
-import LoadingSpinner from "../components/LoadingSpinner";
 import SidebarEvents from "../components/SidebarEvents.jsx";
 import SidebarFriends from "../components/SidebarFriends.jsx";
 import SidebarMatches from "../components/SidebarMatches.jsx";
+import LoadingSpinner from "../components/LoadingSpinner";
+import { calculateProfileCompletion } from "../utils/profileCompletion";
+import { Menu } from "lucide-react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.current);
   const assessmentStatus = useSelector(selectAssessmentStatus);
-  const userEvents = useSelector(selectUserEvents);
 
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // NEW: track sidebar state
 
   useEffect(() => {
     async function refreshUser() {
@@ -43,7 +40,6 @@ export default function Dashboard() {
         const latest = await fetchUserById(user.id);
         dispatch(setUser(latest));
 
-        // fetch all assessment types
         const types = [
           "initial",
           "diy",
@@ -56,7 +52,6 @@ export default function Dashboard() {
           dispatch(getAssessment({ assessmentType: type, userId: latest.id }))
         );
 
-        // fetch events
         dispatch(fetchEvents());
         dispatch(fetchUserEvents(user.id));
       } catch (err) {
@@ -101,33 +96,9 @@ export default function Dashboard() {
           <div className="bg-gray-900/80 rounded-2xl shadow-lg p-6">
             <Awards />
           </div>
-
-          {/* Mobile: collapsible panels */}
-          <div className="space-y-4 lg:hidden">
-            <details className="bg-gray-900/80 rounded-2xl shadow-lg p-4">
-              <summary className="cursor-pointer font-semibold">
-                Your Events
-              </summary>
-              <UserEvents events={userEvents} />
-            </details>
-
-            <details className="bg-gray-900/80 rounded-2xl shadow-lg p-4">
-              <summary className="cursor-pointer font-semibold">
-                Friends
-              </summary>
-              <FriendsList />
-            </details>
-
-            <details className="bg-gray-900/80 rounded-2xl shadow-lg p-4">
-              <summary className="cursor-pointer font-semibold">
-                Matches
-              </summary>
-              <MatchesList />
-            </details>
-          </div>
         </div>
 
-        {/* Desktop: sidebar */}
+        {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex lg:flex-col lg:w-80 lg:shrink-0">
           <div className="sticky top-6 h-[calc(100vh-3rem)] overflow-y-auto space-y-4 pr-2">
             <ProfileCard compact />
@@ -136,6 +107,32 @@ export default function Dashboard() {
             <SidebarMatches />
           </div>
         </aside>
+
+        {/* Sidebar - Mobile */}
+        <div className="lg:hidden">
+          {/* Slide-out panel */}
+          <div
+            className={`fixed top-0 right-0 h-full w-72 bg-gray-900/95 shadow-xl transform transition-transform duration-300 z-40 ${
+              sidebarOpen ? "translate-x-0" : "translate-x-[99%]"
+            }`}
+          >
+            {/* Pull handle */}
+            <button
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 bg-brand-600 hover:bg-brand-500 text-white p-2 rounded-l-md shadow-md"
+            >
+              {sidebarOpen ? "→" : "←"}
+            </button>
+
+            {/* Sidebar content */}
+            <div className="p-4 space-y-4 overflow-y-auto h-full">
+              <ProfileCard compact />
+              <SidebarEvents />
+              <SidebarFriends />
+              <SidebarMatches />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
