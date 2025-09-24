@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import apiFetch from "../../api/apiClient";
 import Toast from "../../components/Toast";
-import { Trash2 } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { Trash2, Clock, Save } from "lucide-react";
 
 const DEFAULT_LABELS = {
   initial: "Initial Assessment",
@@ -20,6 +20,10 @@ export default function AdminAssessments() {
   const [toast, setToast] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [showVersions, setShowVersions] = useState(false);
+  const [versions, setVersions] = useState([]); // [{filename,label,createdAt}]
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   // fetch all categories/types
   useEffect(() => {
@@ -69,7 +73,6 @@ export default function AdminAssessments() {
       list.push({ type, label: pickLabel(type, cats) });
     }
 
-    // sort: initial always first, others alphabetically
     list.sort((a, b) => {
       if (a.type === "initial") return -1;
       if (b.type === "initial") return 1;
@@ -106,7 +109,7 @@ export default function AdminAssessments() {
     }
   };
 
-  // delete assessment
+  // delete entire assessment
   const handleDeleteAssessment = (type, label) => {
     setToast({
       message: `Delete the entire assessment "${label}"? This will remove all its questions.`,
@@ -127,10 +130,11 @@ export default function AdminAssessments() {
     });
   };
 
-  // restore defaults
+  // restore latest defaults
   const handleRestoreDefaults = () => {
     setToast({
-      message: "This will wipe ALL assessments and restore defaults. Continue?",
+      message:
+        "This will wipe ALL assessments and restore the latest defaults. Continue?",
       onConfirm: async () => {
         try {
           await apiFetch(`/api/admin/assessment/restore-defaults`, {
@@ -146,6 +150,55 @@ export default function AdminAssessments() {
       },
       onCancel: () => setToast(null),
     });
+  };
+
+  // restore specific version
+  const handleRestoreVersion = async (filename) => {
+    try {
+      await apiFetch(`/api/admin/assessment/restore-defaults`, {
+        method: "POST",
+        body: JSON.stringify({ filename }),
+      });
+      setShowVersions(false);
+      window.location.reload();
+    } catch (err) {
+      console.error("Restore version failed", err);
+      alert("Failed to restore version ❌");
+    }
+  };
+
+  // save current as snapshot (with editable default label)
+  const handleSaveDefaults = async () => {
+    const defaultLabel = `Saved on ${new Date().toLocaleString("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    })}`;
+    const label = prompt("Enter a name for this snapshot:", defaultLabel);
+    if (!label) return;
+    try {
+      const res = await apiFetch(`/api/admin/assessment/save-defaults`, {
+        method: "POST",
+        body: JSON.stringify({ label }),
+      });
+      alert(`Snapshot saved: ${res?.meta?.label || res?.savedAs}`);
+    } catch (err) {
+      console.error("Save defaults failed", err);
+      alert("Failed to save defaults ❌");
+    }
+  };
+
+  // fetch versions list
+  const loadVersions = async () => {
+    setLoadingVersions(true);
+    try {
+      const res = await apiFetch(`/api/admin/assessment/versions`);
+      setVersions(Array.isArray(res) ? res : []);
+    } catch (err) {
+      console.error("Failed to load versions", err);
+      setVersions([]);
+    } finally {
+      setLoadingVersions(false);
+    }
   };
 
   if (loading) return <LoadingSpinner text="Loading assessments..." />;
@@ -169,7 +222,7 @@ export default function AdminAssessments() {
           {assessments.map((a) => (
             <li
               key={a.type}
-              className="p-3 rounded-lg bg-neutral-700 flex justify-between items-center"
+              className="p-3 rounded-lg bg-neutral-700/80 flex justify-between items-center hover:bg-neutral-700 transition"
             >
               <span
                 className="flex-1 cursor-pointer hover:text-brand-400"
@@ -191,12 +244,77 @@ export default function AdminAssessments() {
         </ul>
       </div>
 
-      <button
-        onClick={handleRestoreDefaults}
-        className="px-5 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-semibold shadow"
-      >
-        Restore Defaults
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={handleRestoreDefaults}
+          className="px-5 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-semibold shadow"
+        >
+          Restore Latest
+        </button>
+        <button
+          onClick={handleSaveDefaults}
+          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold shadow inline-flex items-center gap-2"
+        >
+          <Save size={18} /> Save Defaults
+        </button>
+        <button
+          onClick={async () => {
+            await loadVersions();
+            setShowVersions(true);
+          }}
+          className="px-5 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg font-semibold shadow inline-flex items-center gap-2"
+        >
+          <Clock size={18} /> View Versions
+        </button>
+      </div>
+
+      {showVersions && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-neutral-800 rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-neutral-700 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">
+                Available Snapshots
+              </h2>
+              <button
+                onClick={() => setShowVersions(false)}
+                className="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 rounded text-sm"
+              >
+                Close
+              </button>
+            </div>
+
+            {loadingVersions ? (
+              <p className="text-gray-400">Loading...</p>
+            ) : versions.length === 0 ? (
+              <p className="text-gray-400">No snapshots available</p>
+            ) : (
+              <ul className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                {versions.map((v) => (
+                  <li
+                    key={v.filename}
+                    className="p-3 bg-neutral-700/80 rounded flex justify-between items-center hover:bg-neutral-700 transition"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-gray-200 text-sm font-semibold truncate">
+                        {v.label}
+                      </p>
+                      <p className="text-gray-500 text-xs truncate">
+                        {v.filename}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRestoreVersion(v.filename)}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-sm font-semibold ml-3 shrink-0"
+                    >
+                      Restore
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
       {toast && (
         <Toast

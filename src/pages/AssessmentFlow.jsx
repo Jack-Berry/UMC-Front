@@ -1,5 +1,5 @@
 // src/pages/AssessmentFlow.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   submitAssessment,
@@ -13,6 +13,7 @@ export default function AssessmentFlow() {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const userId = Number(storedUser?.id);
+  const questionTopRef = useRef(null);
 
   const [step, setStep] = useState(0);
   const [scores, setScores] = useState({});
@@ -120,6 +121,14 @@ export default function AssessmentFlow() {
       });
     });
   }, [flowData, scores]);
+
+  useEffect(() => {
+    if (questionTopRef.current) {
+      questionTopRef.current.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [step]);
 
   const currentCategory = flowData[step];
 
@@ -237,7 +246,7 @@ export default function AssessmentFlow() {
         track progress and unlock insights.
       </p>
 
-      <div className="mb-8">
+      <div ref={questionTopRef} className="mb-8">
         <h3 className="text-xl font-semibold mb-2">
           {currentCategory.title || currentCategory.category}
         </h3>

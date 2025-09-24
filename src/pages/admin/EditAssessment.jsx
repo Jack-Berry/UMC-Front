@@ -16,8 +16,17 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import SortableItem from "../../components/SortableItem";
-import { Trash2, Plus, ChevronRight, Pencil, Check, X } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  ChevronRight,
+  Pencil,
+  Check,
+  X,
+  Tags,
+} from "lucide-react";
 import Toast from "../../components/Toast";
+import TagSelector from "../../components/TagSelector";
 
 const TYPE_TO_CATEGORY = {
   initial: "Initial Assessment",
@@ -38,11 +47,14 @@ export default function EditAssessment() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState("");
+  const [editingTagsId, setEditingTagsId] = useState(null);
+  const [editingTagsText, setEditingTagsText] = useState("");
   const [dirty, setDirty] = useState(false);
   const [categoryLabel, setCategoryLabel] = useState(
     TYPE_TO_CATEGORY[type] || type
   );
   const [toast, setToast] = useState(null);
+  const [allTags, setAllTags] = useState([]);
 
   // category rename state (initial categories view)
   const [editingCategoryIdx, setEditingCategoryIdx] = useState(null);
@@ -51,6 +63,10 @@ export default function EditAssessment() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
+
+  const normalizeTag = (t) => t.trim().toLowerCase().replace(/\s+/g, "-");
+  const displayTag = (tag) =>
+    tag.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   // ---------- helpers (initial-only ops) ----------
   const deleteInitialCategory = async (category) => {
@@ -90,6 +106,7 @@ export default function EditAssessment() {
         category: newCategory,
         parent_id: null,
         sort_order: q.sort_order ?? idx,
+        tags: q.tags || [],
       }));
       if (payload.length) {
         await apiFetch(`/api/admin/assessment/questions/bulk`, {
@@ -170,6 +187,12 @@ export default function EditAssessment() {
     };
   }, [type, parentId]);
 
+  useEffect(() => {
+    apiFetch("/api/admin/assessment/tags")
+      .then(setAllTags)
+      .catch((e) => console.error("Failed to load tags", e));
+  }, []);
+
   // ---------- question text edit ----------
   const commitEditingQuestion = () => {
     if (!editingId) return;
@@ -188,9 +211,34 @@ export default function EditAssessment() {
     setDirty(true);
   };
 
+  // ---------- tags edit ----------
+  const commitEditingTags = () => {
+    if (!editingTagsId) return;
+    setBlocks((prev) =>
+      prev.map((c) => ({
+        ...c,
+        questions: c.questions.map((q) =>
+          q.id === editingTagsId
+            ? {
+                ...q,
+                tags: editingTagsText
+                  .split(",")
+                  .map(normalizeTag) // apply normalisation
+                  .filter(Boolean),
+              }
+            : q
+        ),
+      }))
+    );
+    setEditingTagsId(null);
+    setEditingTagsText("");
+    setDirty(true);
+  };
+
   // ---------- save questions ----------
   const handleSaveAll = async () => {
     commitEditingQuestion();
+    commitEditingTags();
 
     // In initial *category* view keep parent_id null (not the category name)
     const computedParentId =
@@ -203,6 +251,7 @@ export default function EditAssessment() {
         category: cat.category || categoryLabel,
         parent_id: computedParentId,
         sort_order: idx,
+        tags: q.tags || [],
       }))
     );
 
@@ -220,6 +269,7 @@ export default function EditAssessment() {
   // ---------- navigation ----------
   const handleDrill = async (qOrCat) => {
     commitEditingQuestion();
+    commitEditingTags();
     if (dirty) await handleSaveAll();
     if (type === "initial" && !parentId) {
       navigate(
@@ -232,6 +282,7 @@ export default function EditAssessment() {
 
   const handleBack = async () => {
     commitEditingQuestion();
+    commitEditingTags();
     if (dirty && !(type === "initial" && !parentId)) {
       await handleSaveAll();
     }
@@ -252,6 +303,7 @@ export default function EditAssessment() {
           category: "New Category",
           text: PLACEHOLDER,
           parent_id: null,
+          tags: [],
         }),
       });
       setBlocks((prev) => {
@@ -270,6 +322,7 @@ export default function EditAssessment() {
 
   const handleAddQuestion = async (catIndex) => {
     commitEditingQuestion();
+    commitEditingTags();
     if (dirty) await handleSaveAll();
     try {
       const cat = blocks[catIndex];
@@ -280,6 +333,7 @@ export default function EditAssessment() {
           category: cat.category || categoryLabel,
           text: PLACEHOLDER,
           parent_id: parentId || null,
+          tags: [],
         }),
       });
       setBlocks((prev) =>
@@ -475,7 +529,7 @@ export default function EditAssessment() {
                 <ul className="space-y-3">
                   {cat.questions.map((q) => (
                     <SortableItem key={q.id} id={q.id}>
-                      <div className="bg-neutral-800 rounded p-3 shadow-sm">
+                      <div className="bg-neutral-800 rounded p-3 shadow-sm space-y-2">
                         <div className="flex justify-between items-center">
                           {editingId === q.id ? (
                             <textarea
@@ -521,6 +575,28 @@ export default function EditAssessment() {
                               <Trash2 size={16} />
                             </button>
                           </div>
+                        </div>
+
+                        {/* tags editor */}
+                        <div className="flex items-center gap-2 text-sm">
+                          <Tags size={16} className="text-gray-400" />
+                          <TagSelector
+                            value={q.tags?.map((t) => t.name || t) || []}
+                            options={allTags}
+                            onChange={(newTags) => {
+                              setBlocks((prev) =>
+                                prev.map((c) => ({
+                                  ...c,
+                                  questions: c.questions.map((qq) =>
+                                    qq.id === q.id
+                                      ? { ...qq, tags: newTags }
+                                      : qq
+                                  ),
+                                }))
+                              );
+                              setDirty(true);
+                            }}
+                          />
                         </div>
                       </div>
                     </SortableItem>
