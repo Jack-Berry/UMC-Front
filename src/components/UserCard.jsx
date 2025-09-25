@@ -1,93 +1,86 @@
-// src/components/UserCard.jsx
-import React from "react";
-import { useDispatch } from "react-redux";
-import { removeFriend } from "../redux/friendsSlice";
-import { startConversation } from "../redux/messagesSlice";
-import { Trash2, MessageCircle } from "lucide-react";
+import Crest from "../assets/Crest.png";
 
-const DEFAULT_PLACEHOLDER =
-  "https://managingbarca.com/wp-content/uploads/2025/06/Pep-Guardiola.jpg";
+// 🔹 Helper: format skill slugs into human-readable text
+function displaySkill(skill) {
+  if (!skill) return "";
+  return skill
+    .replace(/-/g, " ") // kebab-case → spaces
+    .replace(/\b\w/g, (c) => c.toUpperCase()); // Capitalise words
+}
 
 export default function UserCard({
   id,
   name,
   avatar,
-  online, // optional (friends)
-  useful, // optional (matches)
-  useless, // optional (matches)
-  placeholder, // optional custom fallback
-  className = "",
-  isFriendCard = false,
+  useful = [],
+  useless = [],
+  matchScore,
+  placeholder = Crest,
+  variant = "friend", // "friend" | "match"
+  extraInfo, // 🔹 optional info (distance, etc.)
+  actions, // 🔹 NEW: React node(s) for action icons
 }) {
-  const dispatch = useDispatch();
-  const imgSrc = avatar || placeholder || DEFAULT_PLACEHOLDER;
-
   return (
-    <div
-      className={`bg-gray-700 rounded-lg p-4 flex flex-col items-center shadow
-                  hover:bg-gray-600 hover:scale-105 hover:shadow-lg
-                  transition-transform duration-200 min-h-[200px] relative ${className}`}
-    >
-      {/* Avatar */}
+    <div className="relative bg-neutral-800 hover:bg-neutral-700 rounded-lg p-4 flex flex-col items-center text-center shadow-md transition">
+      {/* 🔹 Top-right actions */}
+      {actions && (
+        <div className="absolute top-2 right-2 flex gap-2">{actions}</div>
+      )}
+
       <img
-        src={imgSrc}
-        alt={`${name}'s avatar`}
-        className="w-16 h-16 rounded-full object-cover mb-3 border-2 border-neutral-600"
-        loading="lazy"
+        src={avatar || placeholder}
+        alt={name}
+        className="w-16 h-16 rounded-full object-cover border border-neutral-600 mb-3"
       />
+      <h3 className="text-lg font-semibold text-white mb-1">{name}</h3>
 
-      {/* Name + status dot */}
-      <p className="font-medium text-white flex items-center gap-2">
-        {name}
-        {online !== undefined && (
-          <span
-            aria-label={online ? "online" : "offline"}
-            className={`w-2 h-2 rounded-full ${
-              online ? "bg-green-400" : "bg-gray-500"
-            }`}
-          />
-        )}
-      </p>
-
-      {/* Status text */}
-      {online !== undefined && (
-        <p className={`text-xs ${online ? "text-green-400" : "text-gray-400"}`}>
-          {online ? "Online" : "Offline"}
-        </p>
+      {/* Only show in matches */}
+      {variant === "match" && matchScore !== undefined && (
+        <p className="text-sm text-gray-400">Match score: {matchScore}</p>
       )}
 
-      {/* Skills */}
-      {(useful !== undefined || useless !== undefined) && (
-        <div className="mt-3 w-full flex flex-col items-center gap-2">
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-700 text-green-200">
-            Useful: {useful || "—"}
-          </span>
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-700 text-red-200">
-            Useless: {useless || "—"}
-          </span>
-        </div>
-      )}
+      {/* Distance or extra info */}
+      {extraInfo && <div className="mt-1">{extraInfo}</div>}
 
-      {/* Buttons */}
-      {isFriendCard && id && (
-        <div className="absolute top-2 right-2 flex gap-2">
-          {/* Start Chat */}
-          <button
-            onClick={() => dispatch(startConversation(id))}
-            className="p-1 rounded-full bg-neutral-700 hover:bg-blue-600 text-gray-300 hover:text-white transition"
-            title="Start Chat"
-          >
-            <MessageCircle className="w-4 h-4" />
-          </button>
+      {variant === "match" && (
+        <div className="space-y-3 w-full mt-3">
+          {/* Useful skills */}
+          {useful.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-green-400 mb-1">
+                They can help you with:
+              </p>
+              <div className="flex flex-wrap gap-1 justify-center max-h-20 overflow-y-auto">
+                {useful.map((s, i) => (
+                  <span
+                    key={i}
+                    className="px-2 py-1 text-xs rounded-full bg-green-600/20 text-green-300"
+                  >
+                    {displaySkill(s)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Delete Friend */}
-          <button
-            onClick={() => dispatch(removeFriend(id))}
-            className="p-1 rounded-full bg-neutral-700 hover:bg-red-600 text-gray-300 hover:text-white transition"
-            title="Remove Friend"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {/* Useless (your strengths for them) */}
+          {useless.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-blue-400 mb-1">
+                You can help them with:
+              </p>
+              <div className="flex flex-wrap gap-1 justify-center max-h-20 overflow-y-auto">
+                {useless.map((s, i) => (
+                  <span
+                    key={i}
+                    className="px-2 py-1 text-xs rounded-full bg-blue-600/20 text-blue-300"
+                  >
+                    {displaySkill(s)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

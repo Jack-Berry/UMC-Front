@@ -6,6 +6,7 @@ import eventsReducer from "./eventsSlice";
 import newsReducer from "./newsSlice";
 import friendsReducer from "./friendsSlice";
 import messagesReducer from "./messagesSlice";
+import matchesReducer from "./matchesSlice";
 import { localStorageSync } from "./middleware/localStorageSync";
 
 export const store = configureStore({
@@ -16,6 +17,7 @@ export const store = configureStore({
     news: newsReducer,
     friends: friendsReducer,
     messages: messagesReducer,
+    matches: matchesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

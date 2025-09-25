@@ -1,8 +1,8 @@
 // src/components/FriendsList.jsx
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import UserCard from "./UserCard";
-import AddFriendModal from "./AddFriendModal";
+import { useNavigate } from "react-router-dom";
+import { startThread } from "../redux/messagesSlice";
 import {
   fetchFriends,
   fetchRequests,
@@ -13,14 +13,20 @@ import {
   selectFriends,
   selectFriendsStatus,
   markRequestsSeen,
+  removeFriend,
 } from "../redux/friendsSlice";
-import { UserPlus, Bell, Check, X } from "lucide-react";
+import UserCard from "./UserCard";
+import Crest from "../assets/Crest.png";
+import AddFriendModal from "./AddFriendModal";
+import { UserPlus, Bell, Check, X, MessageCircle } from "lucide-react";
 
 const placeholder =
   "https://managingbarca.com/wp-content/uploads/2025/06/Pep-Guardiola.jpg";
 
 export default function FriendsList() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const friends = useSelector(selectFriends);
   const status = useSelector(selectFriendsStatus);
   const { error, incoming = [], requestsSeen } = useSelector((s) => s.friends);
@@ -59,6 +65,22 @@ export default function FriendsList() {
     }
   };
 
+  const handleMessage = async (peerId) => {
+    try {
+      const res = await dispatch(startThread(peerId)).unwrap();
+      navigate("/messages");
+    } catch (e) {
+      console.error("Failed to start conversation:", e);
+      alert("Could not start a conversation. Please try again.");
+    }
+  };
+
+  const handleRemove = (id) => {
+    if (window.confirm("Remove this friend?")) {
+      dispatch(removeFriend(id));
+    }
+  };
+
   if (status === "loading") {
     return (
       <div className="bg-neutral-800 p-6 rounded-lg shadow-md">
@@ -88,11 +110,11 @@ export default function FriendsList() {
               dispatch(markRequestsSeen());
             }}
             className={`relative p-2 hover:bg-neutral-700 transition
-    ${
-      incoming.length > 0 && !requestsSeen
-        ? "border-2 border-red-500 rounded-full animate-wiggle"
-        : "rounded-full"
-    }`}
+              ${
+                incoming.length > 0 && !requestsSeen
+                  ? "border-2 border-red-500 rounded-full animate-wiggle"
+                  : "rounded-full"
+              }`}
           >
             <Bell className="w-5 h-5 text-gray-300" />
             {incoming.length > 0 && (
@@ -163,9 +185,26 @@ export default function FriendsList() {
               key={f.id}
               id={f.id}
               name={f.name}
-              online={f.online}
-              avatar={f.avatar_url || placeholder}
-              isFriendCard
+              avatar={f.avatar || Crest}
+              variant="friend"
+              actions={[
+                <button
+                  key="msg"
+                  onClick={() => handleMessage(f.id)}
+                  className="p-1 bg-gray-600 hover:bg-gray-500 rounded-full"
+                  title="Message"
+                >
+                  <MessageCircle size={18} className="text-white" />
+                </button>,
+                <button
+                  key="remove"
+                  onClick={() => handleRemove(f.id)}
+                  className="p-1 bg-neutral-600 hover:bg-neutral-500 rounded-full"
+                  title="Remove Friend"
+                >
+                  <X size={18} className="text-white" />
+                </button>,
+              ]}
             />
           ))}
         </div>

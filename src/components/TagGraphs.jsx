@@ -1,4 +1,3 @@
-// src/components/TagGraphs.jsx
 import { useState, useMemo } from "react";
 import {
   BarChart,
@@ -21,7 +20,7 @@ function displayTag(tag) {
   return tag.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// Aggregate answers per tag within a category
+// fallback aggregator if DB fields missing
 function aggregatePerTag(answers = [], category) {
   const filtered = answers.filter(
     (a) => a.assessment_type !== "initial" && a.category === category
@@ -38,19 +37,35 @@ function aggregatePerTag(answers = [], category) {
 
   return Object.entries(tagBuckets).map(([tag, scores]) => ({
     tag,
-    score: Math.round(
-      (scores.reduce((s, v) => s + v, 0) / scores.length) * 20 // 1–5 → 0–100
-    ),
+    score: Math.round((scores.reduce((s, v) => s + v, 0) / scores.length) * 20),
   }));
 }
 
-export default function TagGraphs({ answers = [], category, onBack }) {
-  const [mode, setMode] = useState("bar"); // 'bar' | 'radar' | 'heatmap'
-  const data = useMemo(() => aggregatePerTag(answers, category), [answers]);
+export default function TagGraphs({ answers = [], user, category, onBack }) {
+  const [mode, setMode] = useState("bar");
+
+  const data = useMemo(() => {
+    if (user?.tag_scores) {
+      // Build a set of tag slugs that belong to this category (from answers reference)
+      const allowed = new Set();
+      answers
+        .filter((a) => a.category === category)
+        .forEach((a) => {
+          (a.tags || []).forEach((t) => allowed.add(t.name || t));
+        });
+
+      return Object.entries(user.tag_scores)
+        .filter(([tag]) => allowed.has(tag))
+        .map(([tag, score]) => ({
+          tag: displayTag(tag),
+          score: Number(score),
+        }));
+    }
+    return aggregatePerTag(answers, category);
+  }, [answers, user, category]);
 
   return (
     <div className="w-full rounded-2xl border border-neutral-700 bg-neutral-900 p-4 sm:p-6 shadow-md">
-      {/* Header + toggle */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white">
           {category} — Breakdown
@@ -98,11 +113,9 @@ export default function TagGraphs({ answers = [], category, onBack }) {
         </div>
       </div>
 
-      {/* Chart area */}
       <div className="w-full h-[380px]">
         <ResponsiveContainer>
           {mode === "bar" ? (
-            // Horizontal Ranked Bars
             <BarChart
               layout="vertical"
               data={[...data].sort((a, b) => b.score - a.score)}
@@ -131,7 +144,6 @@ export default function TagGraphs({ answers = [], category, onBack }) {
               <Bar dataKey="score" fill="#22d3ee" radius={[0, 6, 6, 0]} />
             </BarChart>
           ) : mode === "radar" ? (
-            // Radar / Spider Chart
             <RadarChart cx="50%" cy="50%" outerRadius="90%" data={data}>
               <PolarGrid stroke="#3f3f46" />
               <PolarAngleAxis
@@ -163,7 +175,6 @@ export default function TagGraphs({ answers = [], category, onBack }) {
               {[...data]
                 .sort((a, b) => b.score - a.score)
                 .map((d) => {
-                  // Color scale: red (low) → amber → green (high)
                   const color =
                     d.score < 40
                       ? "bg-red-500"

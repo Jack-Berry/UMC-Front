@@ -159,7 +159,7 @@ export default function ProfileCard() {
               <p className="text-gray-400 text-xs">Member since 2025</p>
               {user?.location && (
                 <p className="text-gray-300 text-xs">
-                  {user?.show_location ? user.location : "Hidden"}
+                  {user?.show_location ? user.location : ""}
                 </p>
               )}
             </>

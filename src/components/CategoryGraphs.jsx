@@ -33,7 +33,6 @@ function aggregatePerCategory(answers = []) {
 
 // Custom tick renderer for radar chart (wraps labels nicely)
 const CustomAngleTick = ({ x, y, payload }) => {
-  // Split long labels on "&" or space if needed
   const parts = payload.value.split(/ & | (?=\w{6,})/);
   return (
     <text x={x} y={y} textAnchor="middle" fill="#e5e7eb" fontSize={10}>
@@ -46,18 +45,27 @@ const CustomAngleTick = ({ x, y, payload }) => {
   );
 };
 
-export default function CategoryGraphs({ answers = [] }) {
+export default function CategoryGraphs({ answers = [], user }) {
   const [mode, setMode] = useState("radar"); // 'radar' | 'bar' | 'heatmap'
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const data = useMemo(() => aggregatePerCategory(answers), [answers]);
 
-  // detect mobile viewport
+  const data = useMemo(() => {
+    if (user?.category_scores) {
+      return Object.entries(user.category_scores).map(([category, score]) => ({
+        category,
+        score: Number(score),
+      }));
+    }
+    return aggregatePerCategory(answers);
+  }, [answers, user]);
+
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   if (selectedCategory) {
     return (
       <TagGraphs
         answers={answers}
+        user={user}
         category={selectedCategory}
         onBack={() => setSelectedCategory(null)}
       />
@@ -185,7 +193,6 @@ export default function CategoryGraphs({ answers = [] }) {
               <Bar dataKey="score" fill="#22d3ee" radius={[6, 6, 0, 0]} />
             </BarChart>
           ) : (
-            // Heatmap
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
               {[...data]
                 .sort((a, b) => b.score - a.score)

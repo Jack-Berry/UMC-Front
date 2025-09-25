@@ -11,6 +11,7 @@ import AssessmentReminder from "./AssessmentReminder";
 export default function UserResults() {
   const assessments = useSelector((state) => state.assessments.byType);
   const allAnswers = selectAllAnswers(assessments);
+  const user = useSelector((s) => s.user.current);
 
   const hasInDepthData = Object.entries(assessments).some(
     ([type, data]) => type !== "initial" && data?.completed
@@ -23,7 +24,7 @@ export default function UserResults() {
         title: "Category Overview",
         render: () =>
           hasInDepthData ? (
-            <CategoryGraphs answers={allAnswers} />
+            <CategoryGraphs answers={allAnswers} user={user} />
           ) : (
             <div className="flex flex-col items-center justify-center p-10 bg-neutral-800/60 rounded-lg text-center">
               <ClipboardList className="w-10 h-10 text-brand-400 mb-3" />
@@ -40,7 +41,7 @@ export default function UserResults() {
       {
         key: "skills-overview",
         title: "Skills Overview",
-        render: () => <SkillsOverview answers={allAnswers} />,
+        render: () => <SkillsOverview answers={allAnswers} user={user} />,
       },
     ],
     [allAnswers, hasInDepthData]
