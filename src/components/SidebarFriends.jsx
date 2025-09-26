@@ -8,7 +8,7 @@ import {
   rejectRequest,
   markRequestsSeen,
 } from "../redux/friendsSlice";
-import { setActiveThread } from "../redux/messagesSlice";
+import { startThread } from "../redux/messagesSlice";
 import { Bell, Check, X, MessageCircle } from "lucide-react";
 
 const placeholder =
@@ -28,9 +28,14 @@ export default function SidebarFriends() {
     dispatch(fetchRequests());
   }, [dispatch]);
 
-  const handleMessage = (id) => {
-    dispatch(setActiveThread(id));
-    navigate("/messages");
+  const handleMessage = async (peerId) => {
+    try {
+      const res = await dispatch(startThread(peerId)).unwrap();
+      navigate("/messages");
+    } catch (e) {
+      console.error("Failed to start conversation:", e);
+      alert("Could not start a conversation. Please try again.");
+    }
   };
 
   const topFriends = friends.slice(0, 5);

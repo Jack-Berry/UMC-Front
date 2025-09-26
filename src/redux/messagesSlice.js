@@ -6,25 +6,52 @@ import apiFetch from "../api/apiClient";
  * Messaging state shape:
  * - threads: [{ id, participants?, lastMessage?, messages: [] }]
  * - activeThread: threadId
- *
- * Backend endpoints:
- *   GET  /api/msg/threads
- *   POST /api/msg/threads                { peerId }  -> { id, ... } (upsert)
- *   GET  /api/msg/threads/:id/messages
- *   POST /api/msg/threads/:id/messages   { text }    -> { id, text, ... }
  */
+
+// ---------- Async thunks ----------
 
 /** Create or fetch an existing 1:1 thread with a peer user. */
 export const startThread = createAsyncThunk(
   "messages/startThread",
-  async (peerId, { rejectWithValue }) => {
+  async ({ peerId, matchToken }, { getState, rejectWithValue }) => {
     try {
       const res = await apiFetch("/api/msg/threads", {
         method: "POST",
-        body: { peerId },
+        body: { peerId, matchToken },
       });
       if (!res || !res.id) throw new Error("No thread id returned");
-      return res; // { id, ... }
+
+      const state = getState();
+      const friends = state.friends?.list || [];
+      const friend = friends.find((f) => String(f.id) === String(peerId));
+
+      let peerData = friend
+        ? { id: friend.id, name: friend.name, avatar: friend.avatar_url }
+        : null;
+
+      // 🔹 Fallback → fetch user if not in friends
+      if (!peerData) {
+        try {
+          const userRes = await apiFetch(`/api/users/${peerId}`, {
+            method: "GET",
+          });
+          peerData = {
+            id: userRes.id,
+            name: userRes.name,
+            avatar: userRes.avatar_url,
+          };
+        } catch (err) {
+          peerData = { id: peerId, name: "Unknown User", avatar: null };
+        }
+      }
+
+      return {
+        ...res,
+        participants: [
+          { id: state.user.current?.id, ...state.user.current },
+          peerData,
+        ],
+      };
     } catch (err) {
       return rejectWithValue(err.message || "Failed to start thread");
     }
@@ -76,10 +103,12 @@ export const sendMessage = createAsyncThunk(
   }
 );
 
+// ---------- Slice ----------
+
 const messagesSlice = createSlice({
   name: "messages",
   initialState: {
-    threads: [], // [{ id, messages: [] }]
+    threads: [], // [{ id, participants, messages: [] }]
     activeThread: null, // threadId
     loading: false,
     error: null,
@@ -104,7 +133,14 @@ const messagesSlice = createSlice({
         thread = { id: threadId, messages: [] };
         state.threads.push(thread);
       }
-      thread.messages = [...(thread.messages || []), message];
+
+      // ✅ Prevent duplicates by checking message.id
+      const alreadyExists = thread.messages.some(
+        (m) => String(m.id) === String(message.id)
+      );
+      if (!alreadyExists) {
+        thread.messages = [...(thread.messages || []), message];
+      }
     },
   },
   extraReducers: (builder) => {
@@ -112,14 +148,12 @@ const messagesSlice = createSlice({
       // Load threads
       .addCase(fetchThreads.fulfilled, (state, action) => {
         const incoming = action.payload || [];
-        // Preserve messages already loaded
         state.threads = incoming.map((t) => ({
           ...t,
           messages:
             state.threads.find((x) => String(x.id) === String(t.id))
               ?.messages || [],
         }));
-        // If nothing selected, auto-select first so existing threads render
         if (!state.activeThread && state.threads.length > 0) {
           state.activeThread = state.threads[0].id;
         }
@@ -157,17 +191,8 @@ const messagesSlice = createSlice({
         state.error = null;
       })
 
-      // Send message
-      .addCase(sendMessage.fulfilled, (state, action) => {
-        const { threadId, message } = action.payload;
-        let thread = state.threads.find(
-          (t) => String(t.id) === String(threadId)
-        );
-        if (!thread) {
-          thread = { id: threadId, messages: [] };
-          state.threads.push(thread);
-        }
-        thread.messages = [...(thread.messages || []), message];
+      // 🔹 Send message → don’t append here, let socket handle it
+      .addCase(sendMessage.fulfilled, (state) => {
         state.loading = false;
         state.error = null;
       })

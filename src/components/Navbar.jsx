@@ -1,16 +1,34 @@
+// src/components/Navbar.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import MainLogo from "../assets/Main.png";
 import { clearUser } from "../redux/userSlice";
 import { resetAssessments } from "../redux/assessmentSlice";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  LogOut,
+  LayoutDashboard,
+  MessageCircle,
+  UserPlus,
+} from "lucide-react";
 
 export default function Navbar() {
   const user = useSelector((state) => state.user.current);
+  const { threads = [] } = useSelector((s) => s.messages);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Count unread messages (threads that have messages and aren’t active)
+  const unreadCount = threads.reduce((acc, t) => {
+    const last = t.messages?.[t.messages.length - 1];
+    if (last && String(last.senderId) !== String(user?.id)) {
+      acc += 1;
+    }
+    return acc;
+  }, 0);
 
   const handleLogout = () => {
     dispatch(clearUser());
@@ -26,54 +44,69 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-neutral-800 text-white px-4 py-3 flex justify-between items-center shadow-md relative">
+    <nav className="bg-neutral-900 text-white px-4 py-3 flex justify-between items-center shadow relative">
       {/* Logo */}
       <Link to="/home">
         <img
           src={MainLogo}
           alt="Useless Men's Co-op Logo"
-          className="h-24 w-auto hover:opacity-80 transition"
+          className="h-16 w-auto hover:opacity-80 transition"
         />
       </Link>
 
       {/* Desktop Menu */}
-      <div className="hidden sm:flex items-center gap-4">
-        <button
-          onClick={handleReset}
-          className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded-md text-sm"
-        >
-          Reset
-        </button>
+      <div className="hidden sm:flex items-center gap-6">
         {user ? (
           <>
+            {/* Dashboard */}
             <Link
               to="/dashboard"
-              className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-md text-sm font-medium"
+              className="flex items-center gap-1 text-gray-300 hover:text-white"
             >
-              Dashboard
+              <LayoutDashboard size={20} />
+              <span className="text-sm font-medium">Dashboard</span>
             </Link>
 
-            {/* 🔹 Messages link */}
+            {/* Messages with badge */}
             <Link
               to="/messages"
-              className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-md text-sm font-medium"
+              className="relative flex items-center gap-1 text-gray-300 hover:text-white"
             >
-              Messages
+              <MessageCircle size={20} />
+              <span className="text-sm font-medium">Messages</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-3 bg-red-500 text-xs font-bold text-white rounded-full px-1.5">
+                  {unreadCount}
+                </span>
+              )}
             </Link>
 
+            {/* Admin (if applicable) */}
             {user.is_admin && (
               <Link
                 to="/admin"
-                className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-md text-sm font-medium"
+                className="flex items-center gap-1 text-gray-300 hover:text-white"
               >
-                Admin
+                <UserPlus size={20} />
+                <span className="text-sm font-medium">Admin</span>
               </Link>
             )}
+
+            {/* Logout */}
             <button
               onClick={handleLogout}
-              className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-md text-sm font-medium"
+              className="flex items-center gap-1 text-gray-300 hover:text-white"
             >
-              Logout
+              <LogOut size={20} />
+              <span className="text-sm font-medium">Logout</span>
+            </button>
+
+            {/* Reset (less prominent, moved right) */}
+            <button
+              onClick={handleReset}
+              className="ml-4 text-xs text-red-400 hover:text-red-300"
+            >
+              Reset
             </button>
           </>
         ) : (
@@ -93,51 +126,53 @@ export default function Navbar() {
         className="sm:hidden"
         onClick={() => setMenuOpen((prev) => !prev)}
       >
-        {menuOpen ? <X size={24} /> : <Menu size={36} />}
+        {menuOpen ? <X size={24} /> : <Menu size={28} />}
       </button>
 
       {/* Mobile Dropdown */}
       {menuOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-neutral-700 rounded-lg shadow-lg w-40 p-2 flex flex-col gap-2 sm:hidden z-10">
-          <button
-            onClick={handleReset}
-            className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded-md text-sm"
-          >
-            Reset
-          </button>
+        <div className="absolute top-full right-0 mt-2 bg-neutral-800 rounded-lg shadow-lg w-40 p-2 flex flex-col gap-2 sm:hidden z-10">
           {user ? (
             <>
               <Link
                 to="/dashboard"
-                className="bg-brand-600 hover:bg-brand-500 px-3 py-2 rounded text-sm text-center"
+                className="flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-700"
                 onClick={() => setMenuOpen(false)}
               >
-                Dashboard
+                <LayoutDashboard size={18} /> Dashboard
               </Link>
-
-              {/* 🔹 Messages link (mobile) */}
               <Link
                 to="/messages"
-                className="bg-brand-600 hover:bg-brand-500 px-3 py-2 rounded text-sm text-center"
+                className="relative flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-700"
                 onClick={() => setMenuOpen(false)}
               >
-                Messages
+                <MessageCircle size={18} /> Messages
+                {unreadCount > 0 && (
+                  <span className="absolute right-2 bg-red-500 text-xs font-bold text-white rounded-full px-1.5">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
-
               {user.is_admin && (
                 <Link
                   to="/admin"
-                  className="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded text-sm text-center"
+                  className="flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-700"
                   onClick={() => setMenuOpen(false)}
                 >
-                  Admin
+                  <UserPlus size={18} /> Admin
                 </Link>
               )}
               <button
                 onClick={handleLogout}
-                className="bg-brand-600 hover:bg-brand-500 px-3 py-2 rounded text-sm"
+                className="flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-700 text-left"
               >
-                Logout
+                <LogOut size={18} /> Logout
+              </button>
+              <button
+                onClick={handleReset}
+                className="px-3 py-2 rounded text-sm text-red-400 hover:bg-neutral-700"
+              >
+                Reset
               </button>
             </>
           ) : (

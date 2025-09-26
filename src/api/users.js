@@ -18,3 +18,7 @@ export const updateProfile = (userId, updates) =>
     method: "PUT",
     body: JSON.stringify(updates),
   });
+
+// Get user by ID
+export const getUserById = (userId) =>
+  apiFetch(`/api/users/${userId}`, { method: "GET" });

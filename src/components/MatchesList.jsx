@@ -132,7 +132,14 @@ export default function MatchesList() {
 
   const handleMessage = async (peerId) => {
     try {
-      const res = await dispatch(startThread(peerId)).unwrap();
+      // Step 1: fetch a short-lived token
+      const { token } = await apiClient(`/api/matches/token?peerId=${peerId}`);
+      if (!token) throw new Error("No match token received");
+
+      // Step 2: start thread with token
+      const res = await dispatch(
+        startThread({ peerId, matchToken: token })
+      ).unwrap();
       navigate("/messages");
     } catch (e) {
       console.error("Failed to start conversation:", e);
