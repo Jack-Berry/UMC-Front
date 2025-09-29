@@ -1,4 +1,3 @@
-// src/components/Messages.jsx
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -6,11 +5,13 @@ import {
   fetchMessages,
   sendMessage,
   setActiveThread,
+  markThreadRead,
 } from "../redux/messagesSlice";
-import { getUserById } from "../api/users"; // ✅ fallback API call
+import { getUserById } from "../api/users";
 import UserCard from "../components/UserCard";
 import Crest from "../assets/Crest.png";
 import { ArrowDown } from "lucide-react";
+import { joinThread, leaveThread } from "../realtime/socketClient";
 
 const placeholder =
   "https://managingbarca.com/wp-content/uploads/2025/06/Pep-Guardiola.jpg";
@@ -19,7 +20,7 @@ export default function Messages() {
   const dispatch = useDispatch();
 
   const user = useSelector((s) => s.user.current);
-  const { threads, activeThread, loading, error } = useSelector(
+  const { threads, activeThread, loading, error, unreadCounts } = useSelector(
     (s) => s.messages
   );
   const friends = useSelector((s) => s.friends.list) || [];
@@ -27,12 +28,10 @@ export default function Messages() {
 
   const [text, setText] = useState("");
 
-  // Refs for scroll control
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  // Cache of resolved participants per thread: { [threadId]: { id, name, avatar } }
   const [participantsMap, setParticipantsMap] = useState({});
 
   // Load all threads on mount
@@ -40,13 +39,38 @@ export default function Messages() {
     dispatch(fetchThreads());
   }, [dispatch]);
 
-  // Load messages when active thread changes
+  // Load messages + mark read when active thread changes
   useEffect(() => {
     if (!activeThread) return;
-    dispatch(fetchMessages(activeThread));
+
+    dispatch(fetchMessages(activeThread))
+      .unwrap()
+      .then(({ messages }) => {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg && lastMsg.id) {
+          dispatch(
+            markThreadRead({
+              threadId: activeThread,
+              lastReadMsgId: lastMsg.id,
+            })
+          );
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to mark read:", err);
+      });
   }, [dispatch, activeThread]);
 
-  // Track scroll position → show “Recent” button when away from bottom
+  // ✅ Join/leave socket rooms when activeThread changes
+  useEffect(() => {
+    if (!activeThread) return;
+    joinThread(activeThread);
+    return () => {
+      leaveThread(activeThread);
+    };
+  }, [activeThread]);
+
+  // Track scroll position
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -61,10 +85,9 @@ export default function Messages() {
     return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ---------- Participant resolution helpers ----------
+  // ---------- Participant resolution ----------
   const resolveOtherForThread = async (thread) => {
     if (!thread?.participants || !user?.id) return null;
-
     const arr = thread.participants;
 
     if (arr.length && typeof arr[0] === "object") {
@@ -108,7 +131,6 @@ export default function Messages() {
 
   useEffect(() => {
     let cancelled = false;
-
     const fillMissingParticipants = async () => {
       if (!threads?.length) return;
       const updates = {};
@@ -121,7 +143,6 @@ export default function Messages() {
         setParticipantsMap((prev) => ({ ...prev, ...updates }));
       }
     };
-
     fillMissingParticipants();
     return () => {
       cancelled = true;
@@ -134,7 +155,7 @@ export default function Messages() {
   );
   const otherUser = currentThread ? participantsMap[currentThread.id] : null;
 
-  // Auto-scroll when YOU send a message OR when at bottom already
+  // Auto-scroll
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el || !currentThread) return;
@@ -150,11 +171,29 @@ export default function Messages() {
     }
   }, [currentThread, user?.id]);
 
+  // Auto-scroll when thread changes or new messages load
+  useEffect(() => {
+    if (!currentThread || !messagesEndRef.current) return;
+    // Always scroll to bottom on thread open / reload
+    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [currentThread?.id, currentThread?.messages?.length]);
+
   const handleSend = (e) => {
     e.preventDefault();
     if (!text.trim() || !activeThread) return;
     dispatch(sendMessage({ threadId: activeThread, text }));
     setText("");
+  };
+
+  const handleOpenThread = (threadId) => {
+    dispatch(setActiveThread(threadId));
+    const thread = threads.find((t) => String(t.id) === String(threadId));
+    const lastMsg = thread?.messages?.[thread.messages.length - 1];
+    dispatch(markThreadRead({ threadId, lastReadMsgId: lastMsg?.id || null }));
+    // ✅ Force scroll to bottom immediately
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   };
 
   const scrollToBottom = () => {
@@ -163,12 +202,14 @@ export default function Messages() {
 
   return (
     <div className="flex-1 w-full flex h-[84vh] bg-neutral-900 text-white rounded-lg overflow-hidden shadow-lg">
-      {/* Sidebar - Threads List */}
+      {/* Sidebar */}
       <div className="w-64 bg-neutral-900 border-r border-neutral-700 flex-shrink-0 overflow-y-auto">
         <h2 className="text-lg font-bold p-4 border-b border-neutral-700">
           Messages
         </h2>
-        {loading && <p className="p-4 text-gray-400">Loading…</p>}
+        {loading && threads.length === 0 && (
+          <p className="p-4 text-gray-400">Loading…</p>
+        )}
         {error && <p className="p-4 text-red-400">{error}</p>}
         {threads.length === 0 && !loading && (
           <p className="p-4 text-gray-400">No conversations yet.</p>
@@ -176,10 +217,11 @@ export default function Messages() {
         <ul className="space-y-1">
           {threads.map((t) => {
             const other = participantsMap[t.id];
+            const unread = unreadCounts[t.id] || 0;
             return (
               <li key={t.id}>
                 <button
-                  onClick={() => dispatch(setActiveThread(t.id))}
+                  onClick={() => handleOpenThread(t.id)}
                   className={`w-full flex items-center gap-3 p-3 text-left ${
                     activeThread === t.id
                       ? "bg-neutral-800"
@@ -191,14 +233,21 @@ export default function Messages() {
                     alt={(other && other.name) || "User"}
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <div className="flex-1 truncate">
-                    <p className="font-medium text-white">
-                      {(other && other.name) || "User"}
-                    </p>
-                    {t.lastMessage && (
-                      <p className="text-xs text-gray-400 truncate">
-                        {t.lastMessage.text}
+                  <div className="flex-1 truncate flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-white">
+                        {(other && other.name) || "User"}
                       </p>
+                      {t.lastMessage && (
+                        <p className="text-xs text-gray-400 truncate">
+                          {t.lastMessage.text}
+                        </p>
+                      )}
+                    </div>
+                    {unread > 0 && (
+                      <span className="ml-2 bg-brand-600 text-white rounded-full text-xs px-2 py-0.5">
+                        {unread}
+                      </span>
                     )}
                   </div>
                 </button>

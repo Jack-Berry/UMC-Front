@@ -1,4 +1,3 @@
-// src/components/Navbar.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,19 +15,15 @@ import {
 
 export default function Navbar() {
   const user = useSelector((state) => state.user.current);
-  const { threads = [] } = useSelector((s) => s.messages);
+  const unreadCounts = useSelector((s) => s.messages.unreadCounts || {});
+  const unreadCount = Object.values(unreadCounts).reduce(
+    (acc, n) => acc + (n || 0),
+    0
+  );
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Count unread messages (threads that have messages and aren’t active)
-  const unreadCount = threads.reduce((acc, t) => {
-    const last = t.messages?.[t.messages.length - 1];
-    if (last && String(last.senderId) !== String(user?.id)) {
-      acc += 1;
-    }
-    return acc;
-  }, 0);
 
   const handleLogout = () => {
     dispatch(clearUser());
@@ -67,7 +62,7 @@ export default function Navbar() {
               <span className="text-sm font-medium">Dashboard</span>
             </Link>
 
-            {/* Messages with badge */}
+            {/* Messages with live badge */}
             <Link
               to="/messages"
               className="relative flex items-center gap-1 text-gray-300 hover:text-white"
@@ -101,7 +96,7 @@ export default function Navbar() {
               <span className="text-sm font-medium">Logout</span>
             </button>
 
-            {/* Reset (less prominent, moved right) */}
+            {/* Reset */}
             <button
               onClick={handleReset}
               className="ml-4 text-xs text-red-400 hover:text-red-300"

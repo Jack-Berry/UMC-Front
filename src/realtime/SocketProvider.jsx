@@ -1,26 +1,33 @@
-// src/realtime/SocketProvider.jsx
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { onNewMessage, offNewMessage } from "./socketClient";
-import { appendMessage } from "../redux/messagesSlice";
+import { getSocket, onNewMessage, offNewMessage } from "./socketClient";
+import { appendMessage, incrementUnread } from "../redux/messagesSlice";
 
 export default function SocketProvider({ children }) {
   const dispatch = useDispatch();
-  const activeThread = useSelector((s) => s.messages.activeThread);
+  const user = useSelector((s) => s.user.current);
 
   useEffect(() => {
-    const handler = (msg) => {
-      dispatch(appendMessage({ threadId: msg.conversationId, message: msg }));
+    const socket = getSocket();
 
-      // 🔹 Later: add unread badge support
-      if (String(activeThread) !== String(msg.conversationId)) {
-        // dispatch(markUnread(msg.conversationId));
+    const handleNewMessage = (msg) => {
+      dispatch(
+        appendMessage({
+          threadId: msg.conversationId,
+          message: msg,
+          currentUserId: user?.id,
+        })
+      );
+
+      // ✅ Only increment unread if it’s from another user
+      if (String(msg.senderId) !== String(user?.id)) {
+        dispatch(incrementUnread({ threadId: msg.conversationId }));
       }
     };
 
-    onNewMessage(handler);
-    return () => offNewMessage(handler);
-  }, [dispatch, activeThread]);
+    onNewMessage(handleNewMessage);
+    return () => offNewMessage(handleNewMessage);
+  }, [dispatch, user?.id]);
 
   return children;
 }
