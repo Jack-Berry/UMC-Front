@@ -1,7 +1,15 @@
+// src/realtime/SocketProvider.jsx
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSocket, onNewMessage, offNewMessage } from "./socketClient";
+import {
+  getSocket,
+  onNewMessage,
+  offNewMessage,
+  onPresenceUpdate,
+  offPresenceUpdate,
+} from "./socketClient";
 import { appendMessage, incrementUnread } from "../redux/messagesSlice";
+import { setPresence } from "../redux/friendsSlice";
 
 export default function SocketProvider({ children }) {
   const dispatch = useDispatch();
@@ -10,6 +18,7 @@ export default function SocketProvider({ children }) {
   useEffect(() => {
     const socket = getSocket();
 
+    // --- Messages ---
     const handleNewMessage = (msg) => {
       dispatch(
         appendMessage({
@@ -18,15 +27,25 @@ export default function SocketProvider({ children }) {
           currentUserId: user?.id,
         })
       );
-
-      // ✅ Only increment unread if it’s from another user
       if (String(msg.senderId) !== String(user?.id)) {
         dispatch(incrementUnread({ threadId: msg.conversationId }));
       }
     };
 
     onNewMessage(handleNewMessage);
-    return () => offNewMessage(handleNewMessage);
+
+    // --- Presence ---
+    const handlePresence = (update) => {
+      // update looks like: { userId: 7, online: true }
+      dispatch(setPresence(update));
+    };
+
+    onPresenceUpdate(handlePresence);
+
+    return () => {
+      offNewMessage(handleNewMessage);
+      offPresenceUpdate(handlePresence);
+    };
   }, [dispatch, user?.id]);
 
   return children;

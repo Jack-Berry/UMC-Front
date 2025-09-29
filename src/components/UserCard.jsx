@@ -1,3 +1,4 @@
+// src/components/UserCard.jsx
 import Crest from "../assets/Crest.png";
 
 // 🔹 Helper: format skill slugs into human-readable text
@@ -18,7 +19,8 @@ export default function UserCard({
   placeholder = Crest,
   variant = "friend", // "friend" | "match"
   extraInfo, // 🔹 optional info (distance, etc.)
-  actions, // 🔹 NEW: React node(s) for action icons
+  actions, // 🔹 React node(s) for action icons
+  online, // 🔹 NEW: presence flag (boolean)
 }) {
   return (
     <div className="relative bg-neutral-800 hover:bg-neutral-700 rounded-lg p-4 flex flex-col items-center text-center shadow-md transition">
@@ -27,11 +29,23 @@ export default function UserCard({
         <div className="absolute top-2 right-2 flex gap-2">{actions}</div>
       )}
 
-      <img
-        src={avatar || placeholder}
-        alt={name}
-        className="w-16 h-16 rounded-full object-cover border border-neutral-600 mb-3"
-      />
+      {/* Avatar with presence marker */}
+      <div className="relative mb-3">
+        <img
+          src={avatar || placeholder}
+          alt={name}
+          className="w-16 h-16 rounded-full object-cover border border-neutral-600"
+        />
+        {online !== undefined && (
+          <span
+            className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-neutral-800 ${
+              online ? "bg-green-500" : "bg-gray-500"
+            }`}
+            title={online ? "Online" : "Offline"}
+          />
+        )}
+      </div>
+
       <h3 className="text-lg font-semibold text-white mb-1">{name}</h3>
 
       {/* Only show in matches */}

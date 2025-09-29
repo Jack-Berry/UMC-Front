@@ -41,15 +41,15 @@ export default function NewsModal({ open, onClose, onSubmit, initialData }) {
       const res = await uploadNewsImage(file);
 
       if (res.error) {
-        console.error("❌ Upload failed:", res.error);
+        console.error("Upload failed:", res.error);
         alert(`Upload failed: ${res.error}`);
         return;
       }
 
-      console.log("✅ Upload success:", res);
+      console.log("Upload success:", res);
       setImageUrl(res.image_url);
     } catch (err) {
-      console.error("❌ Upload request error:", err);
+      console.error("Upload request error:", err);
       alert(`Upload failed: ${err.message}`);
     }
   };
@@ -64,7 +64,7 @@ export default function NewsModal({ open, onClose, onSubmit, initialData }) {
       if (res.image_url) setImageUrl(res.image_url);
     } catch (err) {
       console.error("Failed to fetch preview", err);
-      alert("Could not fetch preview ❌");
+      alert("Could not fetch preview");
     } finally {
       setLoadingPreview(false);
     }

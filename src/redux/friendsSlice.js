@@ -1,3 +1,4 @@
+// src/redux/friendsSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiFetch from "../api/apiClient";
 
@@ -99,10 +100,22 @@ const friendsSlice = createSlice({
     status: "idle",
     error: null,
     requestsSeen: false,
+    presence: {}, // 🔹 userId → boolean (online/offline)
   },
   reducers: {
     markRequestsSeen: (state) => {
       state.requestsSeen = true;
+    },
+    setPresence: (state, action) => {
+      const { userId, online } = action.payload;
+      console.log("[setPresence] update:", { userId, online });
+      state.presence[userId] = online;
+    },
+    bulkSetPresence: (state, action) => {
+      // for when backend sends a full presence map
+      // shape: { userId: boolean, ... }
+      console.log("[bulkSetPresence] presence payload:", action.payload);
+      state.presence = { ...state.presence, ...action.payload };
     },
   },
   extraReducers: (builder) => {
@@ -163,6 +176,9 @@ export const selectFriendRequests = (state) => ({
   outgoing: state.friends.outgoing,
 });
 export const selectSearchResults = (state) => state.friends.searchResults;
-export const { markRequestsSeen } = friendsSlice.actions;
+export const selectPresence = (state) => state.friends.presence;
+
+export const { markRequestsSeen, setPresence, bulkSetPresence } =
+  friendsSlice.actions;
 
 export default friendsSlice.reducer;

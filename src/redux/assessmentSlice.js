@@ -4,24 +4,38 @@ import {
   createAsyncThunk,
   createSelector,
 } from "@reduxjs/toolkit";
-import { fetchAssessment, fetchAssessmentQuestions } from "../api/assessment";
+import apiFetch from "../api/apiClient";
 
-// Async thunk for fetching a user's assessment by type
+// 🔹 Fetch all live results for a given user (answers + tags + question_text direct from DB)
+export const fetchUserResults = createAsyncThunk(
+  "assessments/fetchUserResults",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const res = await apiFetch(`/api/assessment/results/${userId}`);
+      return res; // array of { answer_id, question_text, tags[], score, assessment_type, ... }
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+// 🔹 Fetch a specific assessment type (kept for compatibility if you still use it anywhere)
 export const getAssessment = createAsyncThunk(
   "assessments/getAssessment",
   async ({ assessmentType, userId }, { rejectWithValue }) => {
     try {
-      // Fetch answers and questions in parallel
-      const [answersRes, questionsRes] = await Promise.all([
-        fetchAssessment(assessmentType, userId), // user’s answers
-        fetchAssessmentQuestions(assessmentType), // full question set (with tags)
-      ]);
+      // Old way: parallel answers/questions
+      // Now simplified: answers always come from results API
+      const res = await apiFetch(`/api/assessment/results/${userId}`);
+      const filtered = (res || []).filter(
+        (a) => a.assessment_type === assessmentType
+      );
 
       return {
         assessmentType,
         data: {
-          answers: answersRes.answers || [],
-          questions: questionsRes.questions || [],
+          answers: filtered,
+          questions: [], // we no longer need to enrich with stale questions
         },
       };
     } catch (err) {
@@ -34,18 +48,52 @@ const assessmentSlice = createSlice({
   name: "assessments",
   initialState: {
     byType: {}, // keyed by assessmentType: { answers, questions, completed }
+    results: [], // flat array of all live results
     loading: false,
     error: null,
   },
   reducers: {
     resetAssessments: (state) => {
       state.byType = {};
+      state.results = [];
       state.loading = false;
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
+      // Fetch all results
+      .addCase(fetchUserResults.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserResults.fulfilled, (state, action) => {
+        state.loading = false;
+        state.results = action.payload || [];
+
+        // Rebuild byType for compatibility with existing selectors/components
+        const grouped = {};
+        state.results.forEach((r) => {
+          if (!grouped[r.assessment_type]) {
+            grouped[r.assessment_type] = {
+              answers: [],
+              questions: [],
+              completed: false,
+            };
+          }
+          grouped[r.assessment_type].answers.push(r);
+        });
+        Object.keys(grouped).forEach((type) => {
+          grouped[type].completed = grouped[type].answers.length > 0;
+        });
+        state.byType = grouped;
+      })
+      .addCase(fetchUserResults.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch results";
+      })
+
+      // Get a single assessment type
       .addCase(getAssessment.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -53,8 +101,6 @@ const assessmentSlice = createSlice({
       .addCase(getAssessment.fulfilled, (state, action) => {
         state.loading = false;
         const { assessmentType, data } = action.payload;
-        console.log("Fetched assessment data:", assessmentType, data);
-
         state.byType[assessmentType] = {
           answers: data.answers || [],
           questions: data.questions || [],
@@ -68,6 +114,7 @@ const assessmentSlice = createSlice({
   },
 });
 
+// 🔹 Selector: assessment completion status (unchanged)
 export const selectAssessmentStatus = createSelector(
   (state) => state.assessments.byType,
   (byType) => ({
@@ -102,32 +149,12 @@ export const selectAssessmentStatus = createSelector(
   })
 );
 
-// 🔹 Selector: get all answers across all assessments, enriched with tags
-export const selectAnswersWithTags = createSelector(
-  (state) => state.assessments.byType,
-  (byType) => {
-    const allAnswers = [];
-    Object.entries(byType).forEach(
-      ([type, { answers = [], questions = [] }]) => {
-        // Build questionId -> tags lookup
-        const lookup = {};
-        questions.forEach((q) => {
-          lookup[q.id] = q.tags || [];
-        });
+// 🔹 Selector: get all answers (flat, always live)
+export const selectAllAnswers = (state) => state.assessments.results || [];
 
-        // Merge tags into each answer
-        answers.forEach((a) => {
-          allAnswers.push({
-            ...a,
-            tags: lookup[a.questionId] || [],
-            assessment_type: type,
-          });
-        });
-      }
-    );
-    return allAnswers;
-  }
-);
+// 🔹 Selector: answers grouped by type (still available for existing components)
+export const selectAssessmentsByType = (state) =>
+  state.assessments.byType || {};
 
 export const { resetAssessments } = assessmentSlice.actions;
 export default assessmentSlice.reducer;

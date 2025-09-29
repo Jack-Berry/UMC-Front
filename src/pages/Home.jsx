@@ -7,6 +7,9 @@ import EventsList from "../components/EventsList";
 export default function Home() {
   const user = useSelector((s) => s.user.current);
 
+  const hasCoords =
+    user && typeof user.lat === "number" && typeof user.lng === "number";
+
   return (
     <div className="min-h-screen bg-gray-900 text-white px-6 py-10 flex justify-center">
       <div
@@ -20,8 +23,8 @@ export default function Home() {
           <Feed />
         </div>
 
-        {/* Right Sidebar (only if logged in) */}
-        {user && (
+        {/* Right Sidebar (only if logged in AND has coords) */}
+        {hasCoords && (
           <div className="space-y-6">
             <EventsList userLat={user.lat} userLng={user.lng} />
           </div>

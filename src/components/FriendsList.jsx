@@ -14,6 +14,7 @@ import {
   selectFriendsStatus,
   markRequestsSeen,
   removeFriend,
+  selectPresence,
 } from "../redux/friendsSlice";
 import UserCard from "./UserCard";
 import Crest from "../assets/Crest.png";
@@ -29,6 +30,7 @@ export default function FriendsList() {
 
   const friends = useSelector(selectFriends);
   const status = useSelector(selectFriendsStatus);
+  const presence = useSelector(selectPresence); // 🔹 presence map from Redux
   const { error, incoming = [], requestsSeen } = useSelector((s) => s.friends);
 
   const [page, setPage] = useState(1);
@@ -67,7 +69,7 @@ export default function FriendsList() {
 
   const handleMessage = async (peerId) => {
     try {
-      const res = await dispatch(startThread(peerId)).unwrap();
+      await dispatch(startThread(peerId)).unwrap();
       navigate("/messages");
     } catch (e) {
       console.error("Failed to start conversation:", e);
@@ -187,6 +189,7 @@ export default function FriendsList() {
               name={f.name}
               avatar={f.avatar || Crest}
               variant="friend"
+              online={presence[f.id]?.online || false}
               actions={[
                 <button
                   key="msg"

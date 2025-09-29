@@ -8,7 +8,7 @@ export const fetchEvents = createAsyncThunk(
   async ({ lat, lng } = {}, { rejectWithValue }) => {
     try {
       const query = lat && lng ? `?lat=${lat}&lng=${lng}` : "";
-      const res = await apiFetch(`/api/events${query}`); // ✅ use apiFetch
+      const res = await apiFetch(`/api/events${query}`);
       return res;
     } catch (err) {
       return rejectWithValue(err.message || "Failed to fetch events");

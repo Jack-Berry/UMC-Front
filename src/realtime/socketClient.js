@@ -20,12 +20,12 @@ export function connectSocket() {
       auth: { token: localStorage.getItem("accessToken") || "" },
     });
 
-    socket.on("connect", () => console.log("🔌 socket connected:", socket.id));
+    socket.on("connect", () => console.log("socket connected:", socket.id));
     socket.on("disconnect", (reason) =>
-      console.log("🔌 socket disconnected:", reason)
+      console.log("socket disconnected:", reason)
     );
     socket.on("connect_error", (err) =>
-      console.warn("⚠️ socket connect error:", err?.message || err)
+      console.warn("socket connect error:", err?.message || err)
     );
   }
   return socket;
@@ -49,6 +49,19 @@ export function onNewMessage(handler) {
 
 export function offNewMessage(handler) {
   getSocket().off("newMessage", handler);
+}
+
+export function onPresenceUpdate(handler) {
+  getSocket().on("presenceUpdate", handler);
+}
+
+export function offPresenceUpdate(handler) {
+  getSocket().off("presenceUpdate", handler);
+}
+
+// Optional: ask backend for full presence map
+export function requestPresence(ids = []) {
+  getSocket().emit("requestPresence", { ids });
 }
 
 export function disconnectSocket() {

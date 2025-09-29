@@ -73,7 +73,7 @@ export function formatAssessmentQuestions(rows) {
           categories[advancedCategory].questions.push(child);
         }
       } else {
-        console.warn(`⚠️ No parent found for follow-up ${q.id}`);
+        console.warn(`No parent found for follow-up ${q.id}`);
       }
     }
   });

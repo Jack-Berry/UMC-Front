@@ -6,6 +6,8 @@ import Toast from "../../components/Toast";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { Trash2, Clock, Save } from "lucide-react";
 
+import AdminTags from "./AdminTags";
+
 const DEFAULT_LABELS = {
   initial: "Initial Assessment",
   diy: "DIY & Repairs",
@@ -105,7 +107,7 @@ export default function AdminAssessments() {
       navigate(`/admin/assessments/${type}`);
     } catch (err) {
       console.error("Failed to create assessment", err);
-      alert("Could not create new assessment ❌");
+      alert("Could not create new assessment");
     }
   };
 
@@ -123,7 +125,7 @@ export default function AdminAssessments() {
         } catch (err) {
           console.error("Failed to delete assessment", err);
           setToast(null);
-          alert("Failed to delete assessment ❌");
+          alert("Failed to delete assessment");
         }
       },
       onCancel: () => setToast(null),
@@ -145,7 +147,7 @@ export default function AdminAssessments() {
         } catch (err) {
           console.error("Restore failed", err);
           setToast(null);
-          alert("Failed to restore defaults ❌");
+          alert("Failed to restore defaults");
         }
       },
       onCancel: () => setToast(null),
@@ -163,11 +165,11 @@ export default function AdminAssessments() {
       window.location.reload();
     } catch (err) {
       console.error("Restore version failed", err);
-      alert("Failed to restore version ❌");
+      alert("Failed to restore version");
     }
   };
 
-  // save current as snapshot (with editable default label)
+  // save current as snapshot
   const handleSaveDefaults = async () => {
     const defaultLabel = `Saved on ${new Date().toLocaleString("en-GB", {
       dateStyle: "medium",
@@ -183,7 +185,7 @@ export default function AdminAssessments() {
       alert(`Snapshot saved: ${res?.meta?.label || res?.savedAs}`);
     } catch (err) {
       console.error("Save defaults failed", err);
-      alert("Failed to save defaults ❌");
+      alert("Failed to save defaults");
     }
   };
 
@@ -207,67 +209,81 @@ export default function AdminAssessments() {
     <div className="space-y-8">
       <h1 className="text-3xl font-bold text-white">Manage Assessments</h1>
 
-      <div className="bg-neutral-800 p-6 rounded-xl shadow-lg border border-neutral-700">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-200">Assessments</h2>
-          <button
-            onClick={handleCreateAssessment}
-            className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-semibold"
-          >
-            + New Assessment
-          </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2/3: assessments + buttons */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-neutral-800 p-6 rounded-xl shadow-lg border border-neutral-700">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-200">
+                Assessments
+              </h2>
+              <button
+                onClick={handleCreateAssessment}
+                className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-semibold"
+              >
+                + New Assessment
+              </button>
+            </div>
+
+            <ul className="space-y-2">
+              {assessments.map((a) => (
+                <li
+                  key={a.type}
+                  className="p-3 rounded-lg bg-neutral-700/80 flex justify-between items-center hover:bg-neutral-700 transition"
+                >
+                  <span
+                    className="flex-1 cursor-pointer hover:text-brand-400"
+                    onClick={() => navigate(`/admin/assessments/${a.type}`)}
+                  >
+                    {a.label}
+                  </span>
+                  {a.type !== "initial" && (
+                    <button
+                      onClick={() => handleDeleteAssessment(a.type, a.label)}
+                      className="p-1 hover:bg-red-600 rounded"
+                      title="Delete assessment"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleRestoreDefaults}
+              className="px-5 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-semibold shadow"
+            >
+              Restore Latest
+            </button>
+            <button
+              onClick={handleSaveDefaults}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold shadow inline-flex items-center gap-2"
+            >
+              <Save size={18} /> Save Defaults
+            </button>
+            <button
+              onClick={async () => {
+                await loadVersions();
+                setShowVersions(true);
+              }}
+              className="px-5 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg font-semibold shadow inline-flex items-center gap-2"
+            >
+              <Clock size={18} /> View Versions
+            </button>
+          </div>
         </div>
 
-        <ul className="space-y-2">
-          {assessments.map((a) => (
-            <li
-              key={a.type}
-              className="p-3 rounded-lg bg-neutral-700/80 flex justify-between items-center hover:bg-neutral-700 transition"
-            >
-              <span
-                className="flex-1 cursor-pointer hover:text-brand-400"
-                onClick={() => navigate(`/admin/assessments/${a.type}`)}
-              >
-                {a.label}
-              </span>
-              {a.type !== "initial" && (
-                <button
-                  onClick={() => handleDeleteAssessment(a.type, a.label)}
-                  className="p-1 hover:bg-red-600 rounded"
-                  title="Delete assessment"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        {/* Right 1/3: Tag manager */}
+        <div className="bg-neutral-800 p-6 rounded-xl shadow-lg border border-neutral-700">
+          <AdminTags />
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          onClick={handleRestoreDefaults}
-          className="px-5 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-semibold shadow"
-        >
-          Restore Latest
-        </button>
-        <button
-          onClick={handleSaveDefaults}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold shadow inline-flex items-center gap-2"
-        >
-          <Save size={18} /> Save Defaults
-        </button>
-        <button
-          onClick={async () => {
-            await loadVersions();
-            setShowVersions(true);
-          }}
-          className="px-5 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg font-semibold shadow inline-flex items-center gap-2"
-        >
-          <Clock size={18} /> View Versions
-        </button>
-      </div>
-
+      {/* Versions modal */}
       {showVersions && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-neutral-800 rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-neutral-700 space-y-4">

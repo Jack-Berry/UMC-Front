@@ -45,7 +45,7 @@ export default function AssessmentFlow() {
         const formatted = formatAssessmentQuestions(raw);
         setFlowData(formatted);
       } catch (err) {
-        console.error("❌ Failed to load questions:", err);
+        console.error("Failed to load questions:", err);
         setComingSoon(true);
       } finally {
         setLoading(false);

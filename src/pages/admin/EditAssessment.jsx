@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiFetch from "../../api/apiClient";
+import { fetchTags } from "../../api/tags";
 import { formatAssessmentQuestions } from "../../utils/formatAssessment";
 import {
   DndContext,
@@ -27,6 +28,8 @@ import {
 } from "lucide-react";
 import Toast from "../../components/Toast";
 import TagSelector from "../../components/TagSelector";
+
+import AdminTags from "./AdminTags";
 
 const TYPE_TO_CATEGORY = {
   initial: "Initial Assessment",
@@ -187,11 +190,22 @@ export default function EditAssessment() {
     };
   }, [type, parentId]);
 
+  // ---------- load allTags initially ----------
   useEffect(() => {
-    apiFetch("/api/admin/assessment/tags")
+    apiFetch("/api/tags")
       .then(setAllTags)
       .catch((e) => console.error("Failed to load tags", e));
   }, []);
+
+  // 🔹 helper: refresh tags after AdminTags CRUD
+  const refreshTags = async () => {
+    try {
+      const tags = await apiFetch("/api/tags");
+      setAllTags(tags);
+    } catch (e) {
+      console.error("Failed to refresh tags", e);
+    }
+  };
 
   // ---------- question text edit ----------
   const commitEditingQuestion = () => {
@@ -645,6 +659,11 @@ export default function EditAssessment() {
           </button>
         </div>
       )}
+
+      {/* Tag Manager */}
+      <div className="mt-8">
+        <AdminTags onChange={refreshTags} />
+      </div>
 
       {toast && (
         <Toast

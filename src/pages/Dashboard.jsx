@@ -31,7 +31,7 @@ export default function Dashboard() {
   const assessmentStatus = useSelector(selectAssessmentStatus);
 
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // NEW: track sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     async function refreshUser() {
@@ -52,7 +52,13 @@ export default function Dashboard() {
           dispatch(getAssessment({ assessmentType: type, userId: latest.id }))
         );
 
-        dispatch(fetchEvents());
+        // 🔹 Fetch events with coords if available
+        if (latest.lat && latest.lng) {
+          dispatch(fetchEvents({ lat: latest.lat, lng: latest.lng }));
+        } else {
+          dispatch(fetchEvents());
+        }
+
         dispatch(fetchUserEvents(user.id));
       } catch (err) {
         console.error("Failed to refresh user", err);

@@ -1,14 +1,13 @@
-// src/components/SkillsOverview.jsx
 import { useMemo, useState } from "react";
 import SkillDetailModal from "./SkillDetailModal";
 
-// normalise tag → human-friendly label
+// Normalise tag → human-friendly label
 function displayTag(tag) {
   if (!tag) return "";
   return tag.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// fallback aggregator if DB fields are missing
+// Aggregate scores + evidence by tag
 function aggregateAllTags(answers = []) {
   const filtered = answers.filter((a) => a.assessment_type !== "initial");
 
@@ -34,17 +33,9 @@ function aggregateAllTags(answers = []) {
   }));
 }
 
-export default function SkillsOverview({ answers = [], user }) {
-  const data = useMemo(() => {
-    if (user?.tag_scores) {
-      return Object.entries(user.tag_scores).map(([tag, score]) => ({
-        tag: displayTag(tag),
-        score: Number(score),
-        evidence: [], // DB snapshot doesn’t store evidence
-      }));
-    }
-    return aggregateAllTags(answers);
-  }, [answers, user]);
+export default function SkillsOverview({ answers = [] }) {
+  // 🔹 Always derive from answers (live, DB-joined with tags)
+  const data = useMemo(() => aggregateAllTags(answers), [answers]);
 
   const sorted = [...data].sort((a, b) => b.score - a.score);
   const topSkills = sorted.slice(0, 3);

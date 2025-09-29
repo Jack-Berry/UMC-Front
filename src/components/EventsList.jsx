@@ -6,7 +6,11 @@ import { fetchEvents } from "../redux/eventsSlice";
 import LocationAutocomplete from "./LocationAutocomplete";
 import LoadingSpinner from "./LoadingSpinner";
 
-export default function EventsList({ showPerPageControls = false }) {
+export default function EventsList({
+  showPerPageControls = false,
+  userLat,
+  userLng,
+}) {
   const dispatch = useDispatch();
   const user = useSelector((s) => s.user.current);
   const events = useSelector((s) => s.events.list);
@@ -21,16 +25,19 @@ export default function EventsList({ showPerPageControls = false }) {
 
   const [searchLocation, setSearchLocation] = useState(null);
 
+  // 🔹 Fetch events on first load (only when lat/lng are available)
   useEffect(() => {
     if (!user) return;
+
     if (status === "idle" && !searchLocation) {
-      if (user.lat && user.lng) {
-        dispatch(fetchEvents({ lat: user.lat, lng: user.lng }));
+      if (typeof userLat === "number" && typeof userLng === "number") {
+        dispatch(fetchEvents({ lat: userLat, lng: userLng }));
       } else {
-        dispatch(fetchEvents());
+        // Skip initial fetch until coords exist
+        console.log("Waiting for user location before fetching events");
       }
     }
-  }, [status, dispatch, user, searchLocation]);
+  }, [status, dispatch, user, searchLocation, userLat, userLng]);
 
   const registeredIds = new Set(userEvents.map((e) => e.id));
   const toggleExpand = (id) =>
@@ -99,10 +106,15 @@ export default function EventsList({ showPerPageControls = false }) {
               onClick={() => {
                 setSearchLocation(null);
                 setPage(1);
-                if (user.lat && user.lng) {
-                  dispatch(fetchEvents({ lat: user.lat, lng: user.lng }));
+                if (
+                  typeof userLat === "number" &&
+                  typeof userLng === "number"
+                ) {
+                  dispatch(fetchEvents({ lat: userLat, lng: userLng }));
                 } else {
-                  dispatch(fetchEvents());
+                  console.log(
+                    "Waiting for user location before fetching events"
+                  );
                 }
               }}
               className="text-brand-400 hover:underline ml-1"

@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -11,6 +12,7 @@ import {
   LayoutDashboard,
   MessageCircle,
   UserPlus,
+  Home,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -31,13 +33,6 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  const handleReset = () => {
-    dispatch(clearUser());
-    dispatch(resetAssessments());
-    localStorage.clear();
-    window.location.href = "/";
-  };
-
   return (
     <nav className="bg-neutral-900 text-white px-4 py-3 flex justify-between items-center shadow relative">
       {/* Logo */}
@@ -53,6 +48,15 @@ export default function Navbar() {
       <div className="hidden sm:flex items-center gap-6">
         {user ? (
           <>
+            {/* Feed */}
+            <Link
+              to="/home"
+              className="flex items-center gap-1 text-gray-300 hover:text-white"
+            >
+              <Home size={20} />
+              <span className="text-sm font-medium">Feed</span>
+            </Link>
+
             {/* Dashboard */}
             <Link
               to="/dashboard"
@@ -95,14 +99,6 @@ export default function Navbar() {
               <LogOut size={20} />
               <span className="text-sm font-medium">Logout</span>
             </button>
-
-            {/* Reset */}
-            <button
-              onClick={handleReset}
-              className="ml-4 text-xs text-red-400 hover:text-red-300"
-            >
-              Reset
-            </button>
           </>
         ) : (
           <>
@@ -129,6 +125,13 @@ export default function Navbar() {
         <div className="absolute top-full right-0 mt-2 bg-neutral-800 rounded-lg shadow-lg w-40 p-2 flex flex-col gap-2 sm:hidden z-10">
           {user ? (
             <>
+              <Link
+                to="/home"
+                className="flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-700"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Home size={18} /> Feed
+              </Link>
               <Link
                 to="/dashboard"
                 className="flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-700"
@@ -162,12 +165,6 @@ export default function Navbar() {
                 className="flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-700 text-left"
               >
                 <LogOut size={18} /> Logout
-              </button>
-              <button
-                onClick={handleReset}
-                className="px-3 py-2 rounded text-sm text-red-400 hover:bg-neutral-700"
-              >
-                Reset
               </button>
             </>
           ) : (
