@@ -1,9 +1,11 @@
+// src/pages/Register.jsx
 import { useState } from "react";
 import { registerUser } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -14,11 +16,31 @@ export default function Register() {
     e.preventDefault();
     try {
       await registerUser(form);
-      navigate("/login");
+      setSuccess(true); // ✅ don’t redirect, show success instead
     } catch (err) {
       alert(err.message);
     }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-900 text-white px-4">
+        <div className="bg-neutral-800 p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-4">Registration Successful</h2>
+          <p className="mb-6">
+            Please check your email and click the verification link to activate
+            your account.
+          </p>
+          <button
+            onClick={() => navigate("/login")}
+            className="px-6 py-2 bg-brand-600 hover:bg-brand-500 rounded text-white"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -38,6 +60,7 @@ export default function Register() {
           />
           <input
             name="email"
+            type="email"
             placeholder="Email"
             onChange={handleChange}
             required

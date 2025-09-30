@@ -2,7 +2,13 @@
 import React from "react";
 import "./index.css";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./redux/store.js";
 import { setUser, clearUser } from "./redux/userSlice";
@@ -11,6 +17,7 @@ import { setUser, clearUser } from "./redux/userSlice";
 import SplashGate from "./pages/SplashGate.jsx";
 import App from "./App.jsx";
 import Register from "./pages/Register.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AssessmentFlow from "./pages/AssessmentFlow.jsx";
@@ -39,9 +46,23 @@ if (loaderEl) {
 
 function AuthenticatedApp() {
   const isAuthenticated = localStorage.getItem("authenticated") === "true";
+  const location = useLocation();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/gate" />;
+  // Allow unauthenticated access to these routes (public pages)
+  const PUBLIC_ROUTES = [
+    "/gate",
+    "/login",
+    "/register",
+    "/verify-email",
+    "/privacy-policy",
+    "/terms-of-use",
+    "/safeguarding-policy",
+  ];
+  const isPublic = PUBLIC_ROUTES.some((p) => location.pathname.startsWith(p));
+
+  // Only redirect to /gate if the route is not public
+  if (!isAuthenticated && !isPublic) {
+    return <Navigate to="/gate" replace />;
   }
 
   return (
@@ -51,6 +72,7 @@ function AuthenticatedApp() {
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route
           path="dashboard"
           element={
@@ -79,9 +101,7 @@ function AuthenticatedApp() {
           path="events"
           element={
             <ProtectedRoute>
-              <>
-                <UserEvents />
-              </>
+              <UserEvents />
             </ProtectedRoute>
           }
         />
@@ -102,7 +122,7 @@ function AuthenticatedApp() {
           }
         />
 
-        {/* 🔹 Admin routes */}
+        {/* Admin routes */}
         <Route
           path="admin"
           element={
@@ -118,10 +138,10 @@ function AuthenticatedApp() {
             element={<EditAssessment />}
           />
           <Route path="events" element={<AdminEvents />} />
-          <Route path="news" element={<AdminNews />} /> {/* ✅ Added */}
+          <Route path="news" element={<AdminNews />} />
         </Route>
 
-        {/* 🔹 Public policy/legal routes */}
+        {/* Public policy/legal routes */}
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-use" element={<TermsOfUse />} />
         <Route path="/safeguarding-policy" element={<SafeguardingPolicy />} />
@@ -130,7 +150,7 @@ function AuthenticatedApp() {
   );
 }
 
-// ✅ Cross-tab sync for user & token
+// Cross-tab sync for user & token
 window.addEventListener("storage", (event) => {
   if (event.key === "user") {
     if (event.newValue) {
@@ -140,7 +160,6 @@ window.addEventListener("storage", (event) => {
       store.dispatch(clearUser());
     }
   }
-
   if (event.key === "accessToken" && !event.newValue) {
     store.dispatch(clearUser());
   }

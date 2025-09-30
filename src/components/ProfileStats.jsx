@@ -161,10 +161,6 @@ export default function ProfileStats() {
           <span className="text-xs text-gray-400">({scoreLabel.label})</span>
         </div>
       </div>
-
-      <div className="mt-2 text-sm text-gray-400 italic">
-        🎯 Badges and streaks coming soon!
-      </div>
     </div>
   );
 }

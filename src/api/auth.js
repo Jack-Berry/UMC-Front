@@ -29,3 +29,9 @@ export const loginUser = async (credentials) => {
 
 export const fetchUserById = (userId) =>
   apiFetch(`/api/auth/user/${userId}`, { method: "GET" });
+
+export const resendVerification = (email) =>
+  apiFetch("/api/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });

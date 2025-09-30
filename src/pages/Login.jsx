@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../api/auth";
+import { loginUser, resendVerification } from "../api/auth";
 import { setUser } from "../redux/userSlice";
 import { getAssessment } from "../redux/assessmentSlice";
 
@@ -14,37 +14,49 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resendMsg, setResendMsg] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowResend(false);
+    setResendMsg("");
 
     try {
       const res = await loginUser({ email, password });
-
-      // ✅ store user in Redux
       dispatch(setUser(res.user));
 
-      // ✅ hydrate Redux with fresh assessment results
       const userId = res.user.id;
-      const categories = [
-        "diy",
-        "technology",
-        "self-care",
-        "communication",
-        "community",
-      ];
-      categories.forEach((type) => {
-        dispatch(getAssessment({ assessmentType: type, userId }));
-      });
+      ["diy", "technology", "self-care", "communication", "community"].forEach(
+        (type) => dispatch(getAssessment({ assessmentType: type, userId }))
+      );
 
       navigate("/dashboard");
     } catch (err) {
-      console.error("Login failed", err);
-      setError("Invalid credentials or server error");
+      const msg = (err?.message || "").toLowerCase();
+      if (msg.includes("verify")) {
+        setError("Please verify your email before logging in.");
+        setShowResend(true);
+      } else {
+        setError(err.message || "Invalid credentials or server error");
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    try {
+      await resendVerification(email);
+      setResendMsg(
+        "If the account exists, a new verification email has been sent."
+      );
+    } catch {
+      setResendMsg(
+        "If the account exists, a new verification email has been sent."
+      );
     }
   }
 
@@ -54,6 +66,7 @@ export default function Login() {
         <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+
           <div>
             <label htmlFor="email" className="block text-sm mb-1">
               Email
@@ -69,6 +82,7 @@ export default function Login() {
               className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
+
           <div>
             <label htmlFor="password" className="block text-sm mb-1">
               Password
@@ -84,6 +98,7 @@ export default function Login() {
               className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -92,6 +107,20 @@ export default function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        {showResend && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleResend}
+              className="text-sm text-brand-400 hover:underline"
+            >
+              Resend verification email
+            </button>
+            {resendMsg && (
+              <p className="text-xs text-gray-400 mt-2">{resendMsg}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

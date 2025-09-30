@@ -86,7 +86,7 @@ export default function Dashboard() {
 
   return (
     <div className="text-white p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Welcome, {user.name}</h1>
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Main content */}
@@ -97,10 +97,6 @@ export default function Dashboard() {
 
           <div className="bg-gray-900/80 rounded-2xl shadow-lg p-6">
             <ProfileStats />
-          </div>
-
-          <div className="bg-gray-900/80 rounded-2xl shadow-lg p-6">
-            <Awards />
           </div>
         </div>
 
