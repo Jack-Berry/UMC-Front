@@ -30,7 +30,7 @@ export default function FriendsList() {
 
   const friends = useSelector(selectFriends);
   const status = useSelector(selectFriendsStatus);
-  const presence = useSelector(selectPresence); // 🔹 presence map from Redux
+  const presence = useSelector(selectPresence);
   const { error, incoming = [], requestsSeen } = useSelector((s) => s.friends);
 
   const [page, setPage] = useState(1);
@@ -45,12 +45,10 @@ export default function FriendsList() {
     }
   }, [status, dispatch]);
 
-  // Client-side pagination
   const startIndex = (page - 1) * limit;
   const currentPageFriends = friends.slice(startIndex, startIndex + limit);
   const totalPages = Math.ceil(friends.length / limit);
 
-  // ✅ Search user by email → send friend request
   const handleAddFriend = async (email) => {
     try {
       const result = await dispatch(searchUsersByEmail(email)).unwrap();
@@ -152,10 +150,12 @@ export default function FriendsList() {
                 <div className="flex items-center gap-2">
                   <img
                     src={req.avatar_url || placeholder}
-                    alt={req.name}
+                    alt={req.display_name || req.first_name || "User"}
                     className="w-8 h-8 rounded-full"
                   />
-                  <span className="text-sm">{req.name}</span>
+                  <span className="text-sm">
+                    {req.display_name || req.first_name || "User"}
+                  </span>
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -186,8 +186,8 @@ export default function FriendsList() {
             <UserCard
               key={f.id}
               id={f.id}
-              name={f.name}
-              avatar={f.avatar || Crest}
+              name={f.display_name || f.first_name || "Unknown"}
+              avatar={f.avatar_url || Crest}
               variant="friend"
               online={presence[f.id]?.online || false}
               actions={[

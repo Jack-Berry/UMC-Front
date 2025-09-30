@@ -1,3 +1,4 @@
+// src/components/SidebarMatches.jsx
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchMatches } from "../redux/matchesSlice";
@@ -9,7 +10,7 @@ export default function SidebarMatches() {
   const { items: matches, loading, error } = useSelector((s) => s.matches);
 
   useEffect(() => {
-    // Fetch on mount (default 50 km)
+    // Fetch on mount (default 100 km)
     dispatch(fetchMatches({ distanceKm: 100, minScore: 80 }));
   }, [dispatch]);
 
@@ -33,24 +34,27 @@ export default function SidebarMatches() {
     <div className="p-4">
       <h3 className="text-lg font-semibold text-white mb-3">Skill Matches</h3>
       <ul className="space-y-3">
-        {topMatches.map((m) => (
-          <li
-            key={m.id}
-            className="flex items-center space-x-3 rounded-lg bg-neutral-800 p-2 hover:bg-neutral-700 transition"
-          >
-            <img
-              src={m.avatar ? m.avatar : Crest}
-              alt={`${m.name}'s avatar`}
-              className="w-12 h-12 rounded-full object-cover border border-neutral-600"
-            />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white">{m.name}</p>
-              <p className="text-xs text-gray-400">
-                Match score: {m.matchScore}
-              </p>
-            </div>
-          </li>
-        ))}
+        {topMatches.map((m) => {
+          const name = m.display_name || m.first_name || `User ${m.id}`;
+          return (
+            <li
+              key={m.id}
+              className="flex items-center space-x-3 rounded-lg bg-neutral-800 p-2 hover:bg-neutral-700 transition"
+            >
+              <img
+                src={m.avatar ? m.avatar : Crest}
+                alt={`${name}'s avatar`}
+                className="w-12 h-12 rounded-full object-cover border border-neutral-600"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">{name}</p>
+                <p className="text-xs text-gray-400">
+                  Match score: {m.matchScore}
+                </p>
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       <div className="mt-4 text-right">

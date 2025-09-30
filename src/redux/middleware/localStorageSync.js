@@ -4,8 +4,13 @@ import { setUser, clearUser, setProfileCompletion } from "../userSlice";
 export const localStorageSync = (store) => (next) => (action) => {
   const result = next(action);
 
+  // Always take from current Redux state instead of raw payload
   if (action.type === setUser.type) {
-    localStorage.setItem("user", JSON.stringify(action.payload));
+    const state = store.getState();
+    const user = state.user.current;
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    }
   }
 
   if (action.type === setProfileCompletion.type) {

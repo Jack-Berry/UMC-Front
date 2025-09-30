@@ -1,3 +1,4 @@
+// src/pages/Messages.jsx
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -95,18 +96,32 @@ export default function Messages() {
       if (!otherObj) return null;
 
       const f = friends.find((fr) => String(fr.id) === String(otherObj.id));
-      if (f) return { id: f.id, name: f.name, avatar: f.avatar_url || Crest };
+      if (f)
+        return {
+          id: f.id,
+          display_name: f.display_name || f.first_name,
+          avatar: f.avatar_url || Crest,
+        };
 
       const m = matches.find((mm) => String(mm.id) === String(otherObj.id));
-      if (m) return { id: m.id, name: m.name, avatar: m.avatar || Crest };
+      if (m)
+        return {
+          id: m.id,
+          display_name: m.display_name || m.first_name,
+          avatar: m.avatar || Crest,
+        };
 
       try {
         const u = await getUserById(otherObj.id);
-        return { id: u.id, name: u.name, avatar: u.avatar_url || Crest };
+        return {
+          id: u.id,
+          display_name: u.display_name || u.first_name,
+          avatar: u.avatar_url || Crest,
+        };
       } catch {
         return {
           id: otherObj.id,
-          name: otherObj.name || `User ${otherObj.id}`,
+          display_name: otherObj.display_name || `User ${otherObj.id}`,
           avatar: Crest,
         };
       }
@@ -116,16 +131,30 @@ export default function Messages() {
     if (!otherId) return null;
 
     const f = friends.find((fr) => String(fr.id) === String(otherId));
-    if (f) return { id: f.id, name: f.name, avatar: f.avatar_url || Crest };
+    if (f)
+      return {
+        id: f.id,
+        display_name: f.display_name || f.first_name,
+        avatar: f.avatar_url || Crest,
+      };
 
     const m = matches.find((mm) => String(mm.id) === String(otherId));
-    if (m) return { id: m.id, name: m.name, avatar: m.avatar || Crest };
+    if (m)
+      return {
+        id: m.id,
+        display_name: m.display_name || m.first_name,
+        avatar: m.avatar || Crest,
+      };
 
     try {
       const u = await getUserById(otherId);
-      return { id: u.id, name: u.name, avatar: u.avatar_url || Crest };
+      return {
+        id: u.id,
+        display_name: u.display_name || u.first_name,
+        avatar: u.avatar_url || Crest,
+      };
     } catch {
-      return { id: otherId, name: `User ${otherId}`, avatar: Crest };
+      return { id: otherId, display_name: `User ${otherId}`, avatar: Crest };
     }
   };
 
@@ -174,7 +203,6 @@ export default function Messages() {
   // Auto-scroll when thread changes or new messages load
   useEffect(() => {
     if (!currentThread || !messagesEndRef.current) return;
-    // Always scroll to bottom on thread open / reload
     messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [currentThread?.id, currentThread?.messages?.length]);
 
@@ -190,7 +218,6 @@ export default function Messages() {
     const thread = threads.find((t) => String(t.id) === String(threadId));
     const lastMsg = thread?.messages?.[thread.messages.length - 1];
     dispatch(markThreadRead({ threadId, lastReadMsgId: lastMsg?.id || null }));
-    // ✅ Force scroll to bottom immediately
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 50);
@@ -230,13 +257,13 @@ export default function Messages() {
                 >
                   <img
                     src={(other && other.avatar) || placeholder}
-                    alt={(other && other.name) || "User"}
+                    alt={(other && other.display_name) || "User"}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div className="flex-1 truncate flex items-center justify-between">
                     <div>
                       <p className="font-medium text-white">
-                        {(other && other.name) || "User"}
+                        {(other && other.display_name) || "User"}
                       </p>
                       {t.lastMessage && (
                         <p className="text-xs text-gray-400 truncate">
@@ -264,7 +291,7 @@ export default function Messages() {
             <div className="border-b border-neutral-700 px-4 pb-4 pt-0">
               <UserCard
                 id={otherUser?.id}
-                name={otherUser?.name}
+                name={otherUser?.display_name}
                 avatar={otherUser?.avatar || Crest}
                 variant="friend"
               />

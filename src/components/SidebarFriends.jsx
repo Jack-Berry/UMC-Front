@@ -35,9 +35,8 @@ export default function SidebarFriends() {
     dispatch(fetchRequests());
   }, [dispatch]);
 
-  // REST presence fallback: fetch on mount, whenever friends list changes, and every 30s.
+  // REST presence fallback
   useEffect(() => {
-    // Avoid empty queries
     const ids = friends.map((f) => f.id).filter(Boolean);
     if (ids.length === 0) return;
 
@@ -45,24 +44,18 @@ export default function SidebarFriends() {
 
     const fetchPresence = async () => {
       try {
-        // GET /api/users/presence?ids=1,2,3 returns { presence: { "1": true, "2": false, ... } }
         const res = await apiFetch(
           `/api/users/presence?ids=${encodeURIComponent(ids.join(","))}`
         );
-        console.log("[SidebarFriends] presence API response:", res);
         if (!cancelled && res && res.presence) {
           dispatch(bulkSetPresence(res.presence));
         }
       } catch (err) {
-        // Non-fatal: socket updates will still flow if configured
         console.warn("Presence fetch failed:", err?.message || err);
       }
     };
 
-    // Kick off immediately…
     fetchPresence();
-
-    // …and poll every 30s as a safety net
     clearInterval(pollTimer.current);
     pollTimer.current = setInterval(fetchPresence, 30_000);
 
@@ -82,7 +75,6 @@ export default function SidebarFriends() {
     }
   };
 
-  // Keep the UI compact: show top 5 friends here
   const topFriends = useMemo(() => friends.slice(0, 5), [friends]);
 
   return (
@@ -119,57 +111,61 @@ export default function SidebarFriends() {
             Friend Requests
           </h3>
           {incoming.length ? (
-            incoming.map((req) => (
-              <div
-                key={req.request_id || req.id}
-                className="flex items-center justify-between bg-neutral-800 p-2 rounded"
-              >
-                <div className="flex items-center gap-2">
-                  <img
-                    src={req.avatar_url || placeholder}
-                    alt={req.name}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <span className="text-sm">{req.name}</span>
+            incoming.map((req) => {
+              const name =
+                req.display_name || req.first_name || `User ${req.id}`;
+              return (
+                <div
+                  key={req.request_id || req.id}
+                  className="flex items-center justify-between bg-neutral-800 p-2 rounded"
+                >
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={req.avatar_url || placeholder}
+                      alt={name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <span className="text-sm">{name}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => dispatch(acceptRequest(req.request_id))}
+                      className="p-1 bg-green-600 hover:bg-green-500 rounded text-white"
+                      title="Accept"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => dispatch(rejectRequest(req.request_id))}
+                      className="p-1 bg-red-600 hover:bg-red-500 rounded text-white"
+                      title="Decline"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => dispatch(acceptRequest(req.request_id))}
-                    className="p-1 bg-green-600 hover:bg-green-500 rounded text-white"
-                    title="Accept"
-                  >
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => dispatch(rejectRequest(req.request_id))}
-                    className="p-1 bg-red-600 hover:bg-red-500 rounded text-white"
-                    title="Decline"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="text-xs text-gray-400">No requests right now.</p>
           )}
         </div>
       )}
 
-      {/* Top friends list with presence dot */}
+      {/* Top friends list */}
       {topFriends.length === 0 ? (
         <p className="text-sm text-gray-400">No friends yet.</p>
       ) : (
         <ul className="space-y-2">
           {topFriends.map((f) => {
             const online = Boolean(presence?.[f.id]?.online);
+            const name = f.display_name || f.first_name || `User ${f.id}`;
             return (
               <li
                 key={f.id}
                 className="flex items-center justify-between text-sm bg-neutral-700/50 p-2 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  {/* Presence dot */}
                   <span
                     className={`inline-block h-2.5 w-2.5 rounded-full ${
                       online
@@ -181,10 +177,10 @@ export default function SidebarFriends() {
                   />
                   <img
                     src={f.avatar_url || placeholder}
-                    alt={f.name}
+                    alt={name}
                     className="w-8 h-8 rounded-full object-cover"
                   />
-                  <span className="font-medium text-gray-200">{f.name}</span>
+                  <span className="font-medium text-gray-200">{name}</span>
                 </div>
                 <div className="flex gap-2">
                   <button

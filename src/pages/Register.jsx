@@ -4,19 +4,36 @@ import { registerUser } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    display_name: "",
+    email: "",
+    password: "",
+    dob: "",
+    accepted_terms: false,
+  });
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.accepted_terms) {
+      alert("You must accept the terms and privacy policy.");
+      return;
+    }
+
     try {
       await registerUser(form);
-      setSuccess(true); // ✅ don’t redirect, show success instead
+      setSuccess(true); // ✅ show success instead of redirect
     } catch (err) {
       alert(err.message);
     }
@@ -52,8 +69,33 @@ export default function Register() {
 
         <div className="space-y-4">
           <input
-            name="name"
-            placeholder="Name"
+            name="first_name"
+            placeholder="First Name"
+            value={form.first_name}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-2 rounded bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <input
+            name="last_name"
+            placeholder="Last Name"
+            value={form.last_name}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-2 rounded bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <input
+            name="display_name"
+            placeholder="Display Name (optional)"
+            value={form.display_name}
+            onChange={handleChange}
+            className="w-full px-4 py-2 rounded bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <input
+            name="dob"
+            type="date"
+            placeholder="Date of Birth"
+            value={form.dob}
             onChange={handleChange}
             required
             className="w-full px-4 py-2 rounded bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -62,6 +104,7 @@ export default function Register() {
             name="email"
             type="email"
             placeholder="Email"
+            value={form.email}
             onChange={handleChange}
             required
             className="w-full px-4 py-2 rounded bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -70,10 +113,31 @@ export default function Register() {
             name="password"
             type="password"
             placeholder="Password"
+            value={form.password}
             onChange={handleChange}
             required
             className="w-full px-4 py-2 rounded bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
+          <label className="flex items-center space-x-2 text-sm text-gray-300">
+            <input
+              type="checkbox"
+              name="accepted_terms"
+              checked={form.accepted_terms}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-gray-600 bg-neutral-700 focus:ring-brand-500"
+            />
+            <span>
+              I accept the{" "}
+              <a href="/terms" className="text-brand-400 hover:underline">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="/privacy" className="text-brand-400 hover:underline">
+                Privacy Policy
+              </a>
+              .
+            </span>
+          </label>
         </div>
 
         <button

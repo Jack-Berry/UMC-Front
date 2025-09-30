@@ -12,6 +12,9 @@ function displaySkill(skill) {
 export default function UserCard({
   id,
   name,
+  display_name,
+  first_name,
+  last_name,
   avatar,
   useful = [],
   useless = [],
@@ -20,8 +23,12 @@ export default function UserCard({
   variant = "friend", // "friend" | "match"
   extraInfo, // 🔹 optional info (distance, etc.)
   actions, // 🔹 React node(s) for action icons
-  online, // 🔹 NEW: presence flag (boolean)
+  online, // 🔹 presence flag (boolean)
 }) {
+  // Normalised display name
+  const resolvedName =
+    name || display_name || first_name || last_name || `User ${id}`;
+
   return (
     <div className="relative bg-neutral-800 hover:bg-neutral-700 rounded-lg p-4 flex flex-col items-center text-center shadow-md transition">
       {/* 🔹 Top-right actions */}
@@ -33,7 +40,7 @@ export default function UserCard({
       <div className="relative mb-3">
         <img
           src={avatar || placeholder}
-          alt={name}
+          alt={resolvedName}
           className="w-16 h-16 rounded-full object-cover border border-neutral-600"
         />
         {online !== undefined && (
@@ -46,7 +53,7 @@ export default function UserCard({
         )}
       </div>
 
-      <h3 className="text-lg font-semibold text-white mb-1">{name}</h3>
+      <h3 className="text-lg font-semibold text-white mb-1">{resolvedName}</h3>
 
       {/* Only show in matches */}
       {variant === "match" && matchScore !== undefined && (

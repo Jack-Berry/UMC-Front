@@ -1,3 +1,4 @@
+// src/components/WelcomeBanner.jsx
 import React from "react";
 import { Users, Lightbulb, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -6,12 +7,16 @@ import { useSelector } from "react-redux";
 export default function WelcomeBanner() {
   const user = useSelector((s) => s.user.current);
 
+  // Normalise name display
+  const resolvedName =
+    user?.display_name || user?.first_name || user?.last_name || "";
+
   // Logged-in view (compressed)
   if (user) {
     return (
       <section className="bg-neutral-800 p-6 rounded-lg shadow-md mb-8 text-center">
         <h1 className="text-2xl font-bold text-brand-400">
-          Welcome back{user.name ? `, ${user.name}` : ""}!
+          Welcome back{resolvedName ? `, ${resolvedName}` : ""}!
         </h1>
       </section>
     );

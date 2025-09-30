@@ -1,3 +1,4 @@
+// src/redux/matchesSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from "../api/apiClient";
 
@@ -10,7 +11,13 @@ export const fetchMatches = createAsyncThunk(
         `/api/matches?distanceKm=${distanceKm}&minScore=${minScore}`,
         { method: "GET" }
       );
-      return res.matches;
+
+      // Normalize to ensure display_name
+      const normalized = (res.matches || []).map((m) => ({
+        ...m,
+        display_name: m.display_name || m.first_name,
+      }));
+      return normalized;
     } catch (err) {
       console.error("fetchMatches error:", err);
       return rejectWithValue(err.message || "Fetch failed");
@@ -29,7 +36,13 @@ export const searchMatches = createAsyncThunk(
         )}&distanceKm=${distanceKm}`,
         { method: "GET" }
       );
-      return res.matches;
+
+      // Normalize to ensure display_name
+      const normalized = (res.matches || []).map((m) => ({
+        ...m,
+        display_name: m.display_name || m.first_name,
+      }));
+      return normalized;
     } catch (err) {
       console.error("searchMatches error:", err);
       return rejectWithValue(err.message || "Search failed");

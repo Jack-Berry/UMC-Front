@@ -43,7 +43,6 @@ export default function MatchesList() {
   const sliderMax = unit === "km" ? 500 : Math.round(200 * 0.621371);
 
   // ---------- Effects ----------
-  // load complementary matches on mount + whenever slider changes
   useEffect(() => {
     if (!user) return;
     const distanceKm =
@@ -60,7 +59,6 @@ export default function MatchesList() {
     );
   }, [dispatch, user, distanceRange, unit, selectedTags]);
 
-  // fetch all available tags once
   useEffect(() => {
     async function loadTags() {
       try {
@@ -73,7 +71,6 @@ export default function MatchesList() {
     loadTags();
   }, []);
 
-  // fetch suggestions as user types
   useEffect(() => {
     if (!skill.trim()) {
       setSuggestions([]);
@@ -93,7 +90,7 @@ export default function MatchesList() {
         if (active) setSuggestions([]);
       }
     }
-    const delay = setTimeout(() => fetchTags(skill), 300); // debounce
+    const delay = setTimeout(() => fetchTags(skill), 300);
     return () => {
       active = false;
       clearTimeout(delay);
@@ -132,14 +129,10 @@ export default function MatchesList() {
 
   const handleMessage = async (peerId) => {
     try {
-      // Step 1: fetch a short-lived token
       const { token } = await apiClient(`/api/matches/token?peerId=${peerId}`);
       if (!token) throw new Error("No match token received");
 
-      // Step 2: start thread with token
-      const res = await dispatch(
-        startThread({ peerId, matchToken: token })
-      ).unwrap();
+      await dispatch(startThread({ peerId, matchToken: token })).unwrap();
       navigate("/messages");
     } catch (e) {
       console.error("Failed to start conversation:", e);
@@ -147,7 +140,7 @@ export default function MatchesList() {
     }
   };
 
-  // ---------- Derived matches (sorted) ----------
+  // ---------- Derived matches ----------
   const sortedMatches = useMemo(() => {
     if (!matches) return [];
     const copy = [...matches];
@@ -161,9 +154,8 @@ export default function MatchesList() {
   // ---------- Render ----------
   return (
     <div className="p-6 space-y-8 h-full flex flex-col">
-      {/* ---------- Controls ---------- */}
+      {/* Controls */}
       <div className="flex items-center justify-between mb-4">
-        {/* Distance toggle + slider */}
         <div className="flex items-center gap-4">
           <span className="text-gray-400 text-sm">Distance:</span>
           <button
@@ -196,7 +188,6 @@ export default function MatchesList() {
           </span>
         </div>
 
-        {/* Sort dropdown */}
         <div>
           <label className="text-gray-400 text-sm mr-2">Sort by:</label>
           <select
@@ -210,13 +201,12 @@ export default function MatchesList() {
         </div>
       </div>
 
-      {/* ---------- Matches Section ---------- */}
+      {/* Matches */}
       <div className="flex-1 overflow-y-auto">
         <h2 className="text-2xl font-bold text-white mb-4">
           Your Skill Matches
         </h2>
 
-        {/* Filters */}
         <details className="mb-4">
           <summary className="cursor-pointer text-sm text-gray-400 mb-2">
             Filter by skill
@@ -260,7 +250,7 @@ export default function MatchesList() {
               <UserCard
                 key={m.id}
                 id={m.id}
-                name={m.name}
+                name={m.display_name || m.first_name || "Unknown"}
                 avatar={m.avatar || Crest}
                 useful={m.usefulForMe || []}
                 useless={m.usefulForThem || []}
@@ -293,14 +283,14 @@ export default function MatchesList() {
                   >
                     <MessageCircle size={18} className="text-white" />
                   </button>,
-                ].filter(Boolean)} // 🔹 remove null if already a friend
+                ].filter(Boolean)}
               />
             );
           })}
         </div>
       </div>
 
-      {/* ---------- Search by Skill ---------- */}
+      {/* Skill search */}
       <div className="h-1/2 bg-neutral-900 rounded-lg p-4 shadow-md overflow-y-auto relative">
         <h3 className="text-lg font-bold text-white mb-3">Search by Skill</h3>
 
@@ -343,7 +333,7 @@ export default function MatchesList() {
                 <UserCard
                   key={u.id}
                   id={u.id}
-                  name={u.name}
+                  name={u.display_name || u.first_name || "Unknown"}
                   avatar={u.avatar || Crest}
                   useful={[skill]}
                   variant="match"

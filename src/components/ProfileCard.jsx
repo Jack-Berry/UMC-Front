@@ -12,7 +12,13 @@ export default function ProfileCard() {
   const user = useSelector((s) => s.user.current);
 
   const [edit, setEdit] = useState(false);
-  const [name, setName] = useState(user?.name || "");
+
+  // Use display_name primarily, fallback to first_name
+  const [displayName, setDisplayName] = useState(
+    user?.display_name || user?.first_name || ""
+  );
+  const [firstName, setFirstName] = useState(user?.first_name || "");
+  const [lastName, setLastName] = useState(user?.last_name || "");
   const [usefulAt, setUsefulAt] = useState(user?.useful_at || "");
   const [uselessAt, setUselessAt] = useState(user?.useless_at || "");
   const [location, setLocation] = useState(user?.location || "");
@@ -28,14 +34,19 @@ export default function ProfileCard() {
   const [showMobileOptions, setShowMobileOptions] = useState(false);
 
   const fileInputRef = useRef(null);
-  const initials = (user?.name || "?").slice(0, 1);
+
+  const initials = (user?.display_name || user?.first_name || "?")
+    .slice(0, 1)
+    .toUpperCase();
   const avatarUrl = user?.avatar_url || null;
 
   async function handleSave() {
     setSaving(true);
     try {
       const updated = await updateProfile(user.id, {
-        name,
+        display_name: displayName,
+        first_name: firstName,
+        last_name: lastName,
         useful_at: usefulAt,
         useless_at: uselessAt,
         location,
@@ -121,7 +132,6 @@ export default function ProfileCard() {
             <span>{initials}</span>
           )}
 
-          {/* Overlay only in edit mode */}
           {edit && (
             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-2">
               <button
@@ -147,15 +157,31 @@ export default function ProfileCard() {
         {/* Name + Meta */}
         <div className={`flex-1 ${edit ? "text-center sm:text-left" : ""}`}>
           {edit ? (
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-neutral-700 text-white px-2 py-1 rounded w-full"
-              placeholder="Your name"
-            />
+            <>
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="bg-neutral-700 text-white px-2 py-1 rounded w-full mb-2"
+                placeholder="Display name"
+              />
+              <input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="bg-neutral-700 text-white px-2 py-1 rounded w-full mb-2"
+                placeholder="First name"
+              />
+              <input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="bg-neutral-700 text-white px-2 py-1 rounded w-full"
+                placeholder="Last name"
+              />
+            </>
           ) : (
             <>
-              <h2 className="text-lg font-semibold">{user?.name}</h2>
+              <h2 className="text-lg font-semibold">
+                {user?.display_name || user?.first_name}
+              </h2>
               <p className="text-gray-400 text-xs">Member since 2025</p>
               {user?.location && (
                 <p className="text-gray-300 text-xs">
@@ -166,7 +192,6 @@ export default function ProfileCard() {
           )}
         </div>
 
-        {/* Edit pill */}
         {!edit && (
           <button
             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-700 hover:bg-neutral-600 text-sm"
@@ -257,7 +282,9 @@ export default function ProfileCard() {
             className="px-3 py-1.5 bg-neutral-700 rounded"
             onClick={() => {
               setEdit(false);
-              setName(user?.name || "");
+              setDisplayName(user?.display_name || user?.first_name || "");
+              setFirstName(user?.first_name || "");
+              setLastName(user?.last_name || "");
               setUsefulAt(user?.useful_at || "");
               setUselessAt(user?.useless_at || "");
               setLocation(user?.location || "");
@@ -278,7 +305,7 @@ export default function ProfileCard() {
         </div>
       )}
 
-      {/* Mobile avatar options overlay */}
+      {/* Mobile avatar options */}
       {showMobileOptions && (
         <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3 rounded-lg">
           <button

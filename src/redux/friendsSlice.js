@@ -7,7 +7,12 @@ export const fetchFriends = createAsyncThunk(
   "friends/fetchFriends",
   async (_, { rejectWithValue }) => {
     try {
-      return await apiFetch("/api/friends");
+      const friends = await apiFetch("/api/friends");
+      // 🔹 Normalize to include display_name
+      return friends.map((f) => ({
+        ...f,
+        display_name: f.display_name || f.first_name,
+      }));
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -18,7 +23,11 @@ export const fetchRequests = createAsyncThunk(
   "friends/fetchRequests",
   async (_, { rejectWithValue }) => {
     try {
-      return await apiFetch("/api/friends/pending");
+      const requests = await apiFetch("/api/friends/pending");
+      return requests.map((r) => ({
+        ...r,
+        display_name: r.display_name || r.first_name,
+      }));
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -29,9 +38,13 @@ export const searchUsersByEmail = createAsyncThunk(
   "friends/searchUsersByEmail",
   async (email, { rejectWithValue }) => {
     try {
-      return await apiFetch(
+      const users = await apiFetch(
         `/api/users/search?email=${encodeURIComponent(email)}`
       );
+      return users.map((u) => ({
+        ...u,
+        display_name: u.display_name || u.first_name,
+      }));
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -42,9 +55,12 @@ export const sendRequest = createAsyncThunk(
   "friends/sendRequest",
   async (userId, { rejectWithValue }) => {
     try {
-      return await apiFetch(`/api/friends/${userId}/request`, {
+      const req = await apiFetch(`/api/friends/${userId}/request`, {
         method: "POST",
       });
+      return req
+        ? { ...req, display_name: req.display_name || req.first_name }
+        : null;
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -55,9 +71,19 @@ export const acceptRequest = createAsyncThunk(
   "friends/acceptRequest",
   async (requestId, { rejectWithValue }) => {
     try {
-      return await apiFetch(`/api/friends/${requestId}/accept`, {
+      const res = await apiFetch(`/api/friends/${requestId}/accept`, {
         method: "POST",
       });
+      if (res?.friend) {
+        return {
+          ...res,
+          friend: {
+            ...res.friend,
+            display_name: res.friend.display_name || res.friend.first_name,
+          },
+        };
+      }
+      return res;
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -68,9 +94,10 @@ export const rejectRequest = createAsyncThunk(
   "friends/rejectRequest",
   async (requestId, { rejectWithValue }) => {
     try {
-      return await apiFetch(`/api/friends/${requestId}/decline`, {
+      await apiFetch(`/api/friends/${requestId}/decline`, {
         method: "POST",
       });
+      return requestId;
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -112,8 +139,6 @@ const friendsSlice = createSlice({
       state.presence[userId] = online;
     },
     bulkSetPresence: (state, action) => {
-      // for when backend sends a full presence map
-      // shape: { userId: boolean, ... }
       console.log("[bulkSetPresence] presence payload:", action.payload);
       state.presence = { ...state.presence, ...action.payload };
     },

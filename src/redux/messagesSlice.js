@@ -1,3 +1,4 @@
+// src/redux/messagesSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiFetch from "../api/apiClient";
 
@@ -26,7 +27,11 @@ export const startThread = createAsyncThunk(
       const friend = friends.find((f) => String(f.id) === String(peerId));
 
       let peerData = friend
-        ? { id: friend.id, name: friend.name, avatar: friend.avatar_url }
+        ? {
+            id: friend.id,
+            display_name: friend.display_name || friend.first_name,
+            avatar: friend.avatar_url,
+          }
         : null;
 
       // 🔹 Fallback → fetch user if not in friends
@@ -37,18 +42,28 @@ export const startThread = createAsyncThunk(
           });
           peerData = {
             id: userRes.id,
-            name: userRes.name,
+            display_name: userRes.display_name || userRes.first_name,
             avatar: userRes.avatar_url,
           };
         } catch {
-          peerData = { id: peerId, name: "Unknown User", avatar: null };
+          peerData = {
+            id: peerId,
+            display_name: "Unknown User",
+            avatar: null,
+          };
         }
       }
 
       return {
         ...res,
         participants: [
-          { id: state.user.current?.id, ...state.user.current },
+          {
+            id: state.user.current?.id,
+            display_name:
+              state.user.current?.display_name ||
+              state.user.current?.first_name,
+            avatar: state.user.current?.avatar_url,
+          },
           peerData,
         ],
       };
