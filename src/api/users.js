@@ -1,24 +1,24 @@
 // src/api/users.js
 import apiFetch from "./apiClient";
 
-// Avatar upload (multipart form-data)
-export const updateAvatar = (userId, file) => {
+// 🔹 Avatar upload (no userId param anymore)
+export const updateAvatar = (file) => {
   const formData = new FormData();
   formData.append("avatar", file);
 
-  return apiFetch(`/api/users/${userId}/avatar`, {
-    method: "PUT",
+  return apiFetch("/api/users/profile/avatar", {
+    method: "PATCH",
     body: formData,
   });
 };
 
-// Profile update (JSON)
-export const updateProfile = (userId, updates) =>
-  apiFetch(`/api/users/${userId}`, {
-    method: "PUT",
+// 🔹 Profile update (no userId param anymore)
+export const updateProfile = (updates) =>
+  apiFetch("/api/users/profile", {
+    method: "PATCH",
     body: JSON.stringify(updates),
   });
 
-// Get user by ID
+// Get user by ID (unchanged)
 export const getUserById = (userId) =>
   apiFetch(`/api/users/${userId}`, { method: "GET" });

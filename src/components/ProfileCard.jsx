@@ -5,7 +5,7 @@ import { setUser } from "../redux/userSlice";
 import { updateAvatar, updateProfile } from "../api/users";
 import { Upload, Edit3, Camera } from "lucide-react";
 import LocationAutocomplete from "./LocationAutocomplete";
-import { fetchUserById } from "../api/auth";
+import { fetchUserById } from "../api/auth"; // could be swapped for /auth/profile later
 
 export default function ProfileCard() {
   const dispatch = useDispatch();
@@ -13,7 +13,7 @@ export default function ProfileCard() {
 
   const [edit, setEdit] = useState(false);
 
-  // Use display_name primarily, fallback to first_name
+  // Editable fields
   const [displayName, setDisplayName] = useState(
     user?.display_name || user?.first_name || ""
   );
@@ -40,13 +40,12 @@ export default function ProfileCard() {
     .toUpperCase();
   const avatarUrl = user?.avatar_url || null;
 
+  // 🔹 Save profile changes
   async function handleSave() {
     setSaving(true);
     try {
-      const updated = await updateProfile(user.id, {
+      const updated = await updateProfile({
         display_name: displayName,
-        first_name: firstName,
-        last_name: lastName,
         useful_at: usefulAt,
         useless_at: uselessAt,
         location,
@@ -64,12 +63,13 @@ export default function ProfileCard() {
     }
   }
 
+  // 🔹 Upload new avatar
   async function uploadAvatarHandler(file) {
     if (!file) return;
     try {
       setUploading(true);
-      await updateAvatar(user.id, file);
-      const latest = await fetchUserById(user.id);
+      await updateAvatar(file);
+      const latest = await fetchUserById("me"); // could be replaced with /auth/profile
       dispatch(setUser(latest));
     } catch (err) {
       console.error("Upload failed:", err);
@@ -163,18 +163,6 @@ export default function ProfileCard() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="bg-neutral-700 text-white px-2 py-1 rounded w-full mb-2"
                 placeholder="Display name"
-              />
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="bg-neutral-700 text-white px-2 py-1 rounded w-full mb-2"
-                placeholder="First name"
-              />
-              <input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="bg-neutral-700 text-white px-2 py-1 rounded w-full"
-                placeholder="Last name"
               />
             </>
           ) : (

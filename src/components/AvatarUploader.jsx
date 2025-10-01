@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { updateAvatar } from "../api/users";
-import { fetchUserById } from "../api/auth"; // ✅ import same as ProfileCard
+import { fetchUserById } from "../api/auth";
 import { setUser } from "../redux/userSlice";
 
-export default function AvatarUploader({ userId, onClose }) {
+export default function AvatarUploader({ onClose }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -15,10 +15,10 @@ export default function AvatarUploader({ userId, onClose }) {
     if (!file) return;
     setBusy(true);
     try {
-      await updateAvatar(userId, file);
+      await updateAvatar(file);
 
-      // ✅ Fetch the fresh user object, not just guess the URL
-      const latest = await fetchUserById(userId);
+      // Fetch fresh user from backend
+      const latest = await fetchUserById("me"); // or refetch via /auth/profile if you prefer
       dispatch(setUser(latest));
 
       onClose?.();

@@ -15,7 +15,6 @@ import {
 import { setUser, setProfileCompletion } from "../redux/userSlice";
 import UserResults from "../components/UserResults";
 import ProfileStats from "../components/ProfileStats";
-import Awards from "../components/Awards";
 import ProfileCard from "../components/ProfileCard";
 import SidebarEvents from "../components/SidebarEvents.jsx";
 import SidebarFriends from "../components/SidebarFriends.jsx";
