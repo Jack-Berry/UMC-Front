@@ -22,3 +22,12 @@ export const updateProfile = (updates) =>
 // Get user by ID (unchanged)
 export const getUserById = (userId) =>
   apiFetch(`/api/users/${userId}`, { method: "GET" });
+
+// 🔹 Check if display name is available
+export const checkDisplayName = async (displayName) => {
+  return apiFetch(
+    `/api/users/check-displayname?display_name=${encodeURIComponent(
+      displayName
+    )}`
+  );
+};

@@ -9,7 +9,7 @@ import {
   acceptRequest,
   rejectRequest,
   sendRequest,
-  searchUsersByEmail,
+  searchUsers, // ✅ updated import
   selectFriends,
   selectFriendsStatus,
   markRequestsSeen,
@@ -49,15 +49,18 @@ export default function FriendsList() {
   const currentPageFriends = friends.slice(startIndex, startIndex + limit);
   const totalPages = Math.ceil(friends.length / limit);
 
-  const handleAddFriend = async (email) => {
+  // 🔹 Updated to use new searchUsers (supports email, first_name, last_name, display_name)
+  const handleAddFriend = async (query) => {
     try {
-      const result = await dispatch(searchUsersByEmail(email)).unwrap();
+      const result = await dispatch(
+        searchUsers({ email: query, first_name: query, last_name: query })
+      ).unwrap();
       if (result.length > 0) {
         const userId = result[0].id;
         dispatch(sendRequest(userId));
         setShowAddModal(false);
       } else {
-        alert("No user found with that email.");
+        alert("No user found matching that search.");
       }
     } catch (err) {
       console.error("Error searching user:", err);

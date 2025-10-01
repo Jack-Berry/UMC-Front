@@ -100,7 +100,7 @@ export default function Dashboard() {
         </div>
 
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-80 lg:shrink-0">
+        <aside className="hidden lg:flex lg:flex-col lg:w-96 xl:w-[28rem] lg:shrink-0">
           <div className="sticky top-6 h-[calc(100vh-3rem)] overflow-y-auto space-y-4 pr-2">
             <ProfileCard compact />
             <SidebarEvents />

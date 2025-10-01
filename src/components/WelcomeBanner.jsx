@@ -3,26 +3,56 @@ import React from "react";
 import { Users, Lightbulb, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { motion } from "framer-motion";
 
 export default function WelcomeBanner() {
   const user = useSelector((s) => s.user.current);
 
-  // Normalise name display
   const resolvedName =
     user?.display_name || user?.first_name || user?.last_name || "";
 
-  // Logged-in view (compressed)
+  // Framer Motion animation variants
+  const container = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+    },
+  };
+
+  const child = {
+    hidden: { opacity: 0, y: `0.25em` },
+    visible: {
+      opacity: 1,
+      y: `0em`,
+      transition: { duration: 0.5, ease: [0.2, 0.65, 0.3, 0.9] },
+    },
+  };
+
+  // 🔹 Logged-in view with animated text
   if (user) {
+    const text = `Hello${resolvedName ? `, ${resolvedName}` : ""}`;
+    const letters = text.split("");
+
     return (
-      <section className="bg-neutral-800 p-6 rounded-lg shadow-md mb-8 text-center">
-        <h1 className="text-2xl font-bold text-brand-400">
-          Welcome back{resolvedName ? `, ${resolvedName}` : ""}!
-        </h1>
+      <section className="mb-10 text-center">
+        <motion.h1
+          className="text-4xl md:text-5xl font-extrabold text-white"
+          variants={container}
+          initial="hidden"
+          animate="visible"
+        >
+          {letters.map((char, i) => (
+            <motion.span key={i} variants={child} className="inline-block">
+              {char === " " ? "\u00A0" : char}
+            </motion.span>
+          ))}
+        </motion.h1>
       </section>
     );
   }
 
-  // Logged-out view (full hero)
+  // 🔹 Logged-out view (hero with 3 pillars + CTA)
   return (
     <section className="bg-neutral-800 p-10 rounded-lg shadow-lg mb-10 text-center">
       {/* Title */}

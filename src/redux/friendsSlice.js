@@ -8,7 +8,6 @@ export const fetchFriends = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const friends = await apiFetch("/api/friends");
-      // 🔹 Normalize to include display_name
       return friends.map((f) => ({
         ...f,
         display_name: f.display_name || f.first_name,
@@ -34,13 +33,32 @@ export const fetchRequests = createAsyncThunk(
   }
 );
 
-export const searchUsersByEmail = createAsyncThunk(
-  "friends/searchUsersByEmail",
-  async (email, { rejectWithValue }) => {
+// 🔹 Smarter search: send only non-empty fields
+export const searchUsers = createAsyncThunk(
+  "friends/searchUsers",
+  async (params, { rejectWithValue, getState }) => {
     try {
-      const users = await apiFetch(
-        `/api/users/search?email=${encodeURIComponent(email)}`
-      );
+      const state = getState();
+      const user = state.user?.current;
+
+      // Build query string with only defined fields
+      const qs = new URLSearchParams();
+
+      if (params.email) qs.append("email", params.email);
+      if (params.first_name) qs.append("first_name", params.first_name);
+      if (params.last_name) qs.append("last_name", params.last_name);
+      if (params.display_name) qs.append("display_name", params.display_name);
+
+      // Add coords for distance sorting if available
+      if (user?.lat && user?.lng) {
+        qs.append("lat", user.lat);
+        qs.append("lng", user.lng);
+      }
+
+      console.log("🔎 Dispatching search with params:", params);
+
+      const users = await apiFetch(`/api/users/search?${qs.toString()}`);
+
       return users.map((u) => ({
         ...u,
         display_name: u.display_name || u.first_name,
@@ -164,7 +182,7 @@ const friendsSlice = createSlice({
         }
       })
 
-      .addCase(searchUsersByEmail.fulfilled, (state, action) => {
+      .addCase(searchUsers.fulfilled, (state, action) => {
         state.searchResults = action.payload || [];
       })
 

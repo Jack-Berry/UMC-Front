@@ -4,6 +4,7 @@ import { getNews, addNews, editNews, removeNews } from "../../redux/newsSlice";
 import { PlusCircle, Pencil, Trash2, Link as LinkIcon } from "lucide-react";
 import NewsModal from "../../components/NewsModal";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import NewsCard from "../../components/NewsCard";
 
 export default function AdminNews() {
   const dispatch = useDispatch();
@@ -52,60 +53,29 @@ export default function AdminNews() {
       ) : news.length ? (
         <ul className="space-y-4">
           {news.map((post) => (
-            <li key={post.id} className="bg-slate-800 rounded-lg p-4 space-y-3">
-              {/* Title */}
-              <h3 className="font-semibold text-xl">{post.title}</h3>
-
-              {/* External link */}
-              {post.type === "external" && post.url && (
-                <a
-                  href={post.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline flex items-center gap-1 text-sm"
-                >
-                  <LinkIcon size={14} /> {post.url}
-                </a>
-              )}
-
-              {/* Image */}
-              {post.image_url && (
-                <img
-                  src={post.image_url}
-                  alt=""
-                  className="w-full max-h-64 object-cover rounded"
-                />
-              )}
-
-              {/* Body text */}
-              {post.type === "native" && post.content && (
-                <p className="text-gray-200 text-base whitespace-pre-line">
-                  {post.content}
-                </p>
-              )}
-
-              {post.type === "external" && post.summary && (
-                <p className="text-gray-300 text-sm">{post.summary}</p>
-              )}
-
-              {/* Footer with actions */}
-              <div className="flex justify-end gap-4 border-t border-slate-700 pt-3">
-                <button
-                  onClick={() => {
-                    setEditing(post);
-                    setShowModal(true);
-                  }}
-                  className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
-                >
-                  <Pencil size={16} /> Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(post.id)}
-                  className="text-red-400 hover:text-red-300 flex items-center gap-1 text-sm"
-                >
-                  <Trash2 size={16} /> Delete
-                </button>
-              </div>
+            <li key={post.id}>
+              <NewsCard
+                {...post}
+                actions={
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditing(post);
+                        setShowModal(true);
+                      }}
+                      className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
+                    >
+                      <Pencil size={16} /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(post.id)}
+                      className="text-red-400 hover:text-red-300 flex items-center gap-1 text-sm"
+                    >
+                      <Trash2 size={16} /> Delete
+                    </button>
+                  </>
+                }
+              />
             </li>
           ))}
         </ul>

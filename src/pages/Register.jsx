@@ -1,11 +1,21 @@
 // src/pages/Register.jsx
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { registerUser } from "../api/auth";
+import { checkDisplayName } from "../api/users"; // ✅ live availability check
 import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-// Import your policy components
+// Validation helpers
+import {
+  validateName,
+  validateDisplayName,
+  validateEmail,
+  validatePassword,
+  validateDob,
+} from "../utils/validation";
+
+// Policy components
 import TermsOfUse from "../components/TermsOfUse";
 import PrivacyPolicy from "../components/PrivacyPolicy";
 
@@ -24,70 +34,30 @@ export default function Register() {
   const [success, setSuccess] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
+  // Display name live check states
+  const [checkingDisplayName, setCheckingDisplayName] = useState(false);
+  const [displayNameAvailable, setDisplayNameAvailable] = useState(null);
+  const debounceRef = useRef(null);
+
   // Modal states
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
   const navigate = useNavigate();
 
-  // Regex for strong password
-  const passwordRules = {
-    length: /.{8,}/,
-    lowercase: /[a-z]/,
-    uppercase: /[A-Z]/,
-    number: /\d/,
-    special: /[^A-Za-z0-9]/,
-  };
-
   // ------------------ validation ------------------
   const validateForm = () => {
     const newErrors = {};
 
-    if (!form.first_name.trim()) {
-      newErrors.first_name = "First name is required.";
-    }
-    if (!form.last_name.trim()) {
-      newErrors.last_name = "Last name is required.";
-    }
-    if (!form.display_name.trim()) {
-      newErrors.display_name = "Display name is required.";
-    } else if (/\s/.test(form.display_name)) {
-      newErrors.display_name = "Display name cannot contain spaces.";
-    }
+    newErrors.first_name = validateName("First name", form.first_name);
+    newErrors.last_name = validateName("Last name", form.last_name);
+    newErrors.display_name = validateDisplayName(form.display_name);
+    newErrors.email = validateEmail(form.email);
+    newErrors.password = validatePassword(form.password);
+    newErrors.dob = validateDob(form.dob);
 
-    if (!form.dob) {
-      newErrors.dob = "Date of birth is required.";
-    } else {
-      const dob = new Date(form.dob);
-      const today = new Date();
-      const age = today.getFullYear() - dob.getFullYear();
-      const m = today.getMonth() - dob.getMonth();
-      const isUnder18 =
-        age < 18 ||
-        (age === 18 && m < 0) ||
-        (age === 18 && m === 0 && today.getDate() < dob.getDate());
-
-      if (isUnder18) {
-        newErrors.dob = "You must be at least 18 years old to register.";
-      }
-    }
-
-    if (!form.email.trim()) {
-      newErrors.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = "Enter a valid email address.";
-    }
-
-    if (!form.password.trim()) {
-      newErrors.password = "Password is required.";
-    } else {
-      const fails = Object.keys(passwordRules).filter(
-        (rule) => !passwordRules[rule].test(form.password)
-      );
-      if (fails.length > 0) {
-        newErrors.password =
-          "Password must include 8+ chars, uppercase, lowercase, number, and special character.";
-      }
+    if (displayNameAvailable === false) {
+      newErrors.display_name = "Display name already taken.";
     }
 
     if (!form.accepted_terms) {
@@ -95,8 +65,53 @@ export default function Register() {
         "You must accept the terms and privacy policy.";
     }
 
+    // Remove nulls
+    Object.keys(newErrors).forEach(
+      (key) => newErrors[key] === null && delete newErrors[key]
+    );
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // ------------------ live display name check ------------------
+  const runDisplayNameCheck = async (name) => {
+    if (!name || !name.trim()) {
+      setDisplayNameAvailable(null);
+      return;
+    }
+    setCheckingDisplayName(true);
+    try {
+      const res = await checkDisplayName(name.trim());
+      setDisplayNameAvailable(res.available);
+      if (!res.available) {
+        setErrors((prev) => ({
+          ...prev,
+          display_name: "Display name already taken.",
+        }));
+      }
+    } catch (err) {
+      console.error("Check display name failed:", err);
+    } finally {
+      setCheckingDisplayName(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!form.display_name) {
+      setDisplayNameAvailable(null);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      runDisplayNameCheck(form.display_name);
+    }, 2500);
+    return () => clearTimeout(debounceRef.current);
+  }, [form.display_name]);
+
+  const handleDisplayNameBlur = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    runDisplayNameCheck(form.display_name);
   };
 
   // ------------------ form handling ------------------
@@ -192,8 +207,24 @@ export default function Register() {
                 placeholder="Display Name"
                 value={form.display_name}
                 onChange={handleChange}
+                onBlur={handleDisplayNameBlur}
                 className="w-full px-4 py-2 rounded bg-neutral-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
+              {checkingDisplayName && (
+                <p className="text-gray-400 text-sm mt-1">
+                  Checking availability…
+                </p>
+              )}
+              {displayNameAvailable === true && (
+                <p className="text-green-400 text-sm mt-1">
+                  Display name is available ✓
+                </p>
+              )}
+              {displayNameAvailable === false && (
+                <p className="text-red-400 text-sm mt-1">
+                  Display name already taken ✗
+                </p>
+              )}
               {errors.display_name && (
                 <p className="text-red-400 text-sm mt-1">
                   {errors.display_name}
@@ -253,57 +284,6 @@ export default function Register() {
               />
               {errors.password && (
                 <p className="text-red-400 text-sm mt-1">{errors.password}</p>
-              )}
-
-              {/* Checklist only when focused */}
-              {passwordFocused && (
-                <ul className="text-xs mt-2 space-y-1">
-                  <li
-                    className={
-                      passwordRules.length.test(form.password)
-                        ? "text-green-400"
-                        : "text-gray-400"
-                    }
-                  >
-                    • At least 8 characters
-                  </li>
-                  <li
-                    className={
-                      passwordRules.lowercase.test(form.password)
-                        ? "text-green-400"
-                        : "text-gray-400"
-                    }
-                  >
-                    • One lowercase letter
-                  </li>
-                  <li
-                    className={
-                      passwordRules.uppercase.test(form.password)
-                        ? "text-green-400"
-                        : "text-gray-400"
-                    }
-                  >
-                    • One uppercase letter
-                  </li>
-                  <li
-                    className={
-                      passwordRules.number.test(form.password)
-                        ? "text-green-400"
-                        : "text-gray-400"
-                    }
-                  >
-                    • One number
-                  </li>
-                  <li
-                    className={
-                      passwordRules.special.test(form.password)
-                        ? "text-green-400"
-                        : "text-gray-400"
-                    }
-                  >
-                    • One special character
-                  </li>
-                </ul>
               )}
             </div>
 
@@ -370,7 +350,7 @@ export default function Register() {
         >
           <div
             className="bg-neutral-800 p-6 rounded-lg shadow-lg w-full max-w-3xl max-h-[80vh] overflow-y-auto text-white"
-            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+            onClick={(e) => e.stopPropagation()}
           >
             <TermsOfUse />
             <button
@@ -391,7 +371,7 @@ export default function Register() {
         >
           <div
             className="bg-neutral-800 p-6 rounded-lg shadow-lg w-full max-w-3xl max-h-[80vh] overflow-y-auto text-white"
-            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+            onClick={(e) => e.stopPropagation()}
           >
             <PrivacyPolicy />
             <button
