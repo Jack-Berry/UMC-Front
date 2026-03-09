@@ -19,6 +19,7 @@ From there, users can send friend requests, start encrypted conversations, and r
 ## Tech stack
 
 **Frontend**
+
 - React 19, Vite 7, React Router 7
 - Redux Toolkit for state management
 - TailwindCSS for styling
@@ -30,6 +31,7 @@ From there, users can send friend requests, start encrypted conversations, and r
 - Google Maps Extended Component Library for location picking
 
 **Backend** (separate repo)
+
 - Node.js with Express 5
 - PostgreSQL with raw SQL via the pg driver
 - Socket.io for real-time communication
@@ -42,17 +44,17 @@ From there, users can send friend requests, start encrypted conversations, and r
 
 ## Key features
 
-**Skill assessments** -- six assessment types, 158+ questions, with hierarchical follow-ups that deepen based on initial answers. Scores are aggregated server-side using a PostgreSQL CTE and stored as JSONB on the user profile.
+**Skill assessments** six assessment types, 158+ questions, with hierarchical follow-ups that deepen based on initial answers. Scores are aggregated server-side using a PostgreSQL CTE and stored as JSONB on the user profile.
 
-**Skill visualisations** -- users can view their scores as a radar chart, bar chart, or colour-coded heatmap. Clicking a category drills down into per-tag scores within that category. All data comes from the Redux store so there are no extra network requests on drill-down.
+**Skill visualisations** users can view their scores as a radar chart, bar chart, or colour-coded heatmap. Clicking a category drills down into per-tag scores within that category. All data comes from the Redux store so there are no extra network requests on drill-down.
 
-**Geographic matching** -- matches are found using a Haversine distance query in PostgreSQL, filtered by radius, and ranked by skill complementarity. The threshold logic (weak below 40, strong above 70) is configurable per request.
+**Geographic matching** matches are found using a Haversine distance query in PostgreSQL, filtered by radius, and ranked by skill complementarity. The threshold logic (weak below 40, strong above 70) is configurable per request.
 
-**Encrypted messaging** -- each conversation has a unique AES-256-GCM key derived from a server-side master secret and a per-conversation salt via HKDF. The server stores and relays ciphertext but cannot read message content.
+**Encrypted messaging** each conversation has a unique AES-256-GCM key derived from a server-side master secret and a per-conversation salt via HKDF. The server stores and relays ciphertext but cannot read message content.
 
-**Real-time presence** -- Socket.io tracks online/offline state and last-seen timestamps. Presence updates are broadcast to all connected clients. Users join per-thread rooms for live message delivery.
+**Real-time presence** Socket.io tracks online/offline state and last-seen timestamps. Presence updates are broadcast to all connected clients. Users join per-thread rooms for live message delivery.
 
-**Admin panel** -- full CRUD for assessment questions with reordering, active/inactive toggling, and tag management. Includes a SQL snapshot system that saves point-in-time backups of the question set as executable restore scripts.
+**Admin panel** full CRUD for assessment questions with reordering, active/inactive toggling, and tag management. Includes a SQL snapshot system that saves point-in-time backups of the question set as executable restore scripts.
 
 ---
 
